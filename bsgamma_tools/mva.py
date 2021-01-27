@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import b2plot
 plt.style.use("belle2")
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
 
@@ -34,6 +33,8 @@ def split_set (set_to_split, size = 0.5 ,rand_state = np.random.randint(9999)):
         y sample for training : array of size original*(1-size)
         y sample for testing  : array of size original*(size)
     """
+    from sklearn.model_selection import train_test_split
+
     pddf = pd.DataFrame(set_to_split)
     pddf.dropna(inplace=True)
     array=pddf.values
@@ -42,7 +43,7 @@ def split_set (set_to_split, size = 0.5 ,rand_state = np.random.randint(9999)):
     train_x, test_x, train_y, test_y = train_test_split(X,Y, test_size = size,random_state=rand_state, shuffle=True)
     return train_x, test_x, train_y, test_y, X, Y
 
-def train_FastBDT (train_x, train_y,depth = 2, num_trees = 200):
+def train_FastBDT (train_x, train_y,depth = 2, num_trees = 200,flatness_loss=-1.0, number_of_flatness_features=0):
     """
     Trains and returns a FastBDT model.
 
@@ -56,12 +57,15 @@ def train_FastBDT (train_x, train_y,depth = 2, num_trees = 200):
         model : trained FastBDT Classifier
     """
 
-    model = FastBDT.Classifier(nTrees=num_trees,depth=depth)
+    model = FastBDT.Classifier(nTrees=num_trees,
+                               depth=depth,
+                               flatnessLoss=flatness_loss,
+                               numberOfFlatnessFeatures=number_of_flatness_features)
     model.fit(train_x,train_y)
 
     return model
 
-def show_ROC (model, train_x, test_x, train_y, test_y, legend_title = 'FastBDT',saveas = None):
+def show_ROC (model, train_x, test_x, train_y, test_y, legend_title = 'FastBDT',saveas=None, axis=None, dont_show=False):
 
     """
     For a trained FastBDT model draws a test and train ROC curve.
@@ -89,10 +93,13 @@ def show_ROC (model, train_x, test_x, train_y, test_y, legend_title = 'FastBDT',
     fpr, tpr, _ = roc_curve(test_y, probs)
     fpr_train, tpr_train, _ = roc_curve(train_y, probs_train)
 
-    golden = (1 + 5 ** 0.5) / 2
-    fig_width = 10
-    fig_height = fig_width/golden
-    fig, axis  = plt.subplots(1, 1,figsize=(fig_width,fig_height))
+    if axis is None:
+        golden = (1 + 5 ** 0.5) / 2
+        fig_width = 10
+        fig_height = fig_width/golden
+        fig, axis  = plt.subplots(1, 1,figsize=(fig_width,fig_height))
+    else:
+        fig = plt.gcf()
 
     # plot the roc curve for the model
     axis.plot(1-fpr, tpr, marker=',', label=f'Test,  AUC={auc:.3f}')
@@ -109,10 +116,11 @@ def show_ROC (model, train_x, test_x, train_y, test_y, legend_title = 'FastBDT',
     if saveas:
       fig.savefig(saveas,bbox_inches='tight')
 
-    # show the plot
-    plt.show()
+    if not dont_show:
+        # show the plot
+        plt.show()
 
-def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas = None, koeff = 1):
+def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas = None, coeff = 1):
     """
     Inputs:
         model   : trained FastBDT Classifier
@@ -131,16 +139,16 @@ def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas
     fig_height = fig_width/golden
     fig, axis  = plt.subplots(1, 1,figsize=(fig_width,fig_height))
 
-    if koeff==1:
+    if coeff==1:
       positive_probs = probs[test_y==1]
       negative_probs = probs[test_y==0]
       positive_probs_train = probs_train[train_y==1]
       negative_probs_train = probs_train[train_y==0]
     else:
-      positive_probs = [koeff*ent for prob in probs[test_y==1]]
-      negative_probs = [koeff*ent for prob in probs[test_y==0]]
-      positive_probs_train = [koeff*ent for prob in probs_train[train_y==1]]
-      negative_probs_train = [koeff*ent for prob in probs_train[train_y==0]]
+      positive_probs = [coeff*ent for prob in probs[test_y==1]]
+      negative_probs = [coeff*ent for prob in probs[test_y==0]]
+      positive_probs_train = [coeff*ent for prob in probs_train[train_y==1]]
+      negative_probs_train = [coeff*ent for prob in probs_train[train_y==0]]
 
     _,bins1,_ = b2plot.hist(negative_probs,fill=True, bins=30, label='Continuum',ax=axis, fillalpha=0.7)
     _,bins2,_ = b2plot.hist(positive_probs,fill=True, bins=30, label='BB', ax=axis, fillalpha=0.7)
@@ -163,6 +171,8 @@ def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas
 
 def equalise_bkg_sig(set_to_equalise, separator = 'isNotContinuumEvent'):
     """
+    Makes the amount of signal and background in the dataframe equal. Signal is defined as separator==1.
+
     Inputs:
         set_to_equalise : anything that can be converted to a pd.DataFrame (including itself) holding keys and values
         separator : some variable name which can divide input sig/bkg. 1 is taken to be sig, 0 to be bkg. Must be len(sig)<len(bkg)
@@ -221,7 +231,7 @@ def show_feature_importance(model,var_set, norm = 'sum', scale = 'log',saveas = 
         ax.set_xlabel("Relative feature importance")
         sns.barplot(
             x=relative_importances[sorted_idx],
-            y=[list(var_set)[idx] for idx in sorted_idx],
+            y=np.array(var_set)[sorted_idx],
             palette=sns.cubehelix_palette(n_colors=len(sorted_idx),rot=0.7,),
             orient="h",
             ax=ax)
@@ -232,7 +242,7 @@ def show_feature_importance(model,var_set, norm = 'sum', scale = 'log',saveas = 
         fig.savefig(saveas,bbox_inches='tight')
 
     fig.show()
-    return [list(var_set)[idx] for idx in sorted_idx]
+    return dict(zip(np.array(var_set)[sorted_idx],relative_importances[sorted_idx]))
 
 def show_corrmatrix(columns,emphasise=0,splitby='isNotContinuumEvent',saveas=None):
     """
@@ -302,12 +312,7 @@ def roc_eff_purr_compare(vars_to_compare,train_dataframe,test_dataframe,depth=2,
     fig, ax  = plt.subplots(1, 2,figsize=(fig_width*2,fig_height))
     i=0
     for par_set, name in vars_to_compare:
-
-        #columns_train = train_dataframe.Filter(cuts).AsNumpy(columns=par_set)
-        #_, _, _, _,train_x,train_y = split_set(columns_train, size=1)
-        #columns_test = test_dataframe.Filter(cuts).AsNumpy(columns=par_set)
-        #_, _, _, _,test_x,test_y = split_set(columns_test, size=1)
-
+        print(i, par_set, name)
         train_x = train_dataframe[par_set].values[:,0:-1]
         train_y = train_dataframe[par_set].values[:,-1]
         test_x = test_dataframe[par_set].values[:,0:-1]
@@ -319,13 +324,13 @@ def roc_eff_purr_compare(vars_to_compare,train_dataframe,test_dataframe,depth=2,
         gbd_auc = roc_auc_score(test_y, gbd_probs)
         gbd_fpr, gbd_tpr, _ = roc_curve(test_y, gbd_probs)
 
-        col = sns.color_palette("colorblind", 10)[i]
+        col = sns.color_palette("colorblind", len(vars_to_compare))[i]
         i+=1
         # plot the roc curve for the model
-        ax[0].plot(1-gbd_fpr, gbd_tpr, marker=',', label=f'{name}, ROC={gbd_auc:.3f}',color = col)
+        ax[0].plot(1-gbd_fpr, gbd_tpr, marker=',', label=f'{name}, ROC={gbd_auc:.3f}',color = col,markevery=20)
 
         pur,eff = b2plot.analysis.pur_eff_cont(gbd_probs,test_y)
-        ax[1].plot(pur,eff, marker=',', label=f'{name}, ROC={gbd_auc:.3f}',color = col)
+        ax[1].plot(pur,eff, marker=',', label=f'{name}, ROC={gbd_auc:.3f}',color = col,markevery=20)
 
         # axis labels
         ax[0].set_xlabel('Background rejection')
