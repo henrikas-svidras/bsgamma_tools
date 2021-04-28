@@ -21,7 +21,7 @@ def equal_binned_colz(values, x_edges, y_edges,
     binsx = pd.unique(np.percentile(x_edges, equal_bins))
     binsy = pd.unique(np.percentile(y_edges, equal_bins))
 
-    colz = ax.imshow(values[::-1,:],
+    colz = ax.imshow(values.T,
                      vmin=col_min, vmax=col_max,
                      cmap=cmap,
                      interpolation='nearest', origin='lower')

@@ -43,7 +43,7 @@ def split_set (set_to_split, size = 0.5 ,rand_state = np.random.randint(9999)):
     train_x, test_x, train_y, test_y = train_test_split(X,Y, test_size = size,random_state=rand_state, shuffle=True)
     return train_x, test_x, train_y, test_y, X, Y
 
-def train_FastBDT (train_x, train_y,depth = 2, num_trees = 200,flatness_loss=-1.0, number_of_flatness_features=0):
+def train_FastBDT (train_x, train_y,depth = 2, num_trees = 1000, shrinkage=0.1, subsample=0.2, flatness_loss=-1.0, number_of_flatness_features=0):
     """
     Trains and returns a FastBDT model.
 
@@ -60,6 +60,8 @@ def train_FastBDT (train_x, train_y,depth = 2, num_trees = 200,flatness_loss=-1.
     model = FastBDT.Classifier(nTrees=num_trees,
                                depth=depth,
                                flatnessLoss=flatness_loss,
+                               shrinkage=shrinkage,
+                               subsample=subsample,
                                numberOfFlatnessFeatures=number_of_flatness_features)
     model.fit(train_x,train_y)
 
@@ -85,9 +87,9 @@ def show_ROC (model, train_x, test_x, train_y, test_y, legend_title = 'FastBDT',
 
     probs = model.predict(test_x)
     probs_train = model.predict(train_x)
-
     auc = roc_auc_score(test_y,probs)
     auc_train = roc_auc_score(train_y,probs_train)
+    print(auc, auc_train)
 
     # calculate roc curves
     fpr, tpr, _ = roc_curve(test_y, probs)
@@ -140,6 +142,8 @@ def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas
     fig, axis  = plt.subplots(1, 1,figsize=(fig_width,fig_height))
 
     if coeff==1:
+      print(probs)
+      print(test_y)
       positive_probs = probs[test_y==1]
       negative_probs = probs[test_y==0]
       positive_probs_train = probs_train[train_y==1]

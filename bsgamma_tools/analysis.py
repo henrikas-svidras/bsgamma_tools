@@ -207,7 +207,7 @@ def ratio_to_signal(pddf_list, xname='',
             weights = [[overal_scale * c for c in cs] for cs in scale]
     else:
         print("Scaling all the pddf the same")
-        weights = [[overal_scale * cs] * len(df) for df in pddf_list]
+        weights = [[overal_scale] * len(df) for df in pddf_list]
 
     n0,bins0, patches0 = ax[0].hist(pddf_list, n_bins, histtype='stepfilled',stacked=True,
                                     lw=.5, color=color_list, edgecolor=edgecolor, label=label_list,
@@ -265,7 +265,9 @@ def train_and_document(variable_list, test_dataframe, train_dataframe,
                        spectators=['gamma_E','Btag_Mbc','Btag_deltaE'],
                        truth_var=None ,vars_to_compare = None,
                        save_path='',save_prefix='mva',
-                       log_scale = True):
+                       log_scale = True,
+                       flatness_loss=-1.0,
+                       number_of_flatness_features=0):
     """
      A wrapper to fully train and document a training.
 
@@ -305,7 +307,7 @@ def train_and_document(variable_list, test_dataframe, train_dataframe,
     test_x = test_dataframe_cut[variable_list].values[:,0:-1]
     test_y = test_dataframe_cut[variable_list].values[:,-1]
 
-    model_grad = train_FastBDT(train_x, train_y, depth =depth, num_trees=num_trees)
+    model_grad = train_FastBDT(train_x, train_y, depth =depth, num_trees=num_trees, flatness_loss=flatness_loss, number_of_flatness_features=number_of_flatness_features)
     roc_curve_name = save_prefix+'_ROC.pdf' if save_prefix else None
     separation_curve_name = save_prefix+'_separation.pdf' if save_prefix else None
     feat_importance_name = save_prefix+'_features.pdf' if save_prefix else None
@@ -331,16 +333,18 @@ def train_and_document(variable_list, test_dataframe, train_dataframe,
       columns_corr = train_dataframe_cut[spectators]
 
     pandas_cols_corr = train_dataframe_cut[best12].join(columns_corr) if spectators else train_dataframe_cut[best12]
-    b2plot.flat_corr_matrix(pandas_cols_corr.query('isNotContinuumEvent==1').drop(columns=['isNotContinuumEvent']),
-                            n_labels = 0,fontsize = 11,label_size = 11, label_rotation = 45)
+    #b2plot.flat_corr_matrix(pandas_cols_corr.query('isNotContinuumEvent==1').drop(columns=['isNotContinuumEvent']),
+    #n_labels = 0,fontsize = 11,label_size = 11, label_rotation = 45)
+
     fig = plt.gcf()
     fig.suptitle(r'$B\bar{B}$ events')
     if save_prefix:
         corr_mat = plt.gcf()
         corr_mat.savefig(save_path+save_prefix+'_correlation_BBmatrix.pdf')
 
-    b2plot.flat_corr_matrix(pandas_cols_corr.query('isNotContinuumEvent==0').drop(columns=['isNotContinuumEvent']),
-                            n_labels = 0,fontsize = 11,label_size = 11, label_rotation = 45)
+    #b2plot.flat_corr_matrix(pandas_cols_corr.query('isNotContinuumEvent==0').drop(columns=['isNotContinuumEvent']),
+    #                        n_labels = 0,fontsize = 11,label_size = 11, label_rotation = 45)
+
     fig = plt.gcf()
     fig.suptitle(r'Continuum events')
     if save_prefix:
@@ -374,11 +378,6 @@ def data_mc_compare(mc, data, drawer,
     for key, i in mc.items():
         mc_stack[key] = i[drawer]
         mc_total+=len(i)
-    #### Need to rewrite that mc_stack is now a dictionary not a list, unfinished
-    # !
-    # !
-    # !
-    # !`
     if colors is None:
         from b2plot.colors import b2helix
         colors = b2helix(len(mc_stack))
@@ -390,7 +389,7 @@ def data_mc_compare(mc, data, drawer,
 
     weights = []
     for key in mc_stack:
-        i = mc_stack[key].dropna()
+        i = mc_stack[key]
         weights.append(np.ones(len(i)))
         if lumis:
             pass
@@ -419,9 +418,7 @@ def data_mc_compare(mc, data, drawer,
                                        color='black',label=dataname, 
                                        ax=ax[0])
 
-    centered_y1 = np.interp(bin_centers, bin_centers, y1)
-    centered_y1[centered_y1==0]=1e-9
-    ratio = y2/centered_y1
+    ratio = y2/y1
     ratio_err = ratio_error(y2, y1)
 
     line,caps,_ = ax[1].errorbar(bin_centers,ratio, yerr = ratio_err, xerr = bin_hwidth*0.5,
