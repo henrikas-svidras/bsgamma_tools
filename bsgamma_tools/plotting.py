@@ -37,3 +37,17 @@ def equal_binned_colz(values, x_edges, y_edges,
 
     fig.colorbar(colz, ax=ax, label=colname, fraction=0.046, pad=0.04)
 
+def equal_bins(x, nbin):
+    """
+    Divides a sample x in nbin equal frequencybins
+    Input:
+        - x:    the sample to divide
+        - nbin: the desired number of equal frequency bins
+    Returns:
+        - numpy array of equal bins
+    """
+    nlen = len(x)
+    return np.interp(np.linspace(0, nlen, nbin + 1),
+                     np.arange(nlen),
+                     np.sort(x))
+

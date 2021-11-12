@@ -1,3 +1,4 @@
+from particle import Particle
 import numpy as np
 import random
 import string
@@ -13,20 +14,24 @@ def pdg_to_name(input_id, latex=False):
 
     safe = {
         '30353':'Xsu',
-        '30343':'Xsd'
+        '-30353':'-Xsu',
+        '30343':'Xsd',
+        '-30343':'-Xsd'
     }
 
-    if np.isnan(int(input_id)):
+    if np.isnan(input_id):
         return 'nan'
     else:
-        if input_id in safe.keys():
-            return safe[input_id]
         input_id = int(input_id)
+        if str(input_id) in safe.keys():
+            return safe[str(input_id)]
         try:
+            part = Particle.from_pdgid(input_id)
             if latex:
-                return f'${Particle.from_pdgid(input_id).latex_name}$'
+                return f'${part.latex_name}$'
             else:
-                return Particle.from_pdgid(input_id).name
+                return part.name
+            #safe[str(input_id)] = part.name
         except:
             return f'Unknown{input_id}'
 
@@ -87,7 +92,7 @@ def punzi_FOM(S, B, S0, gaussian=3):
         - S: signal count with your cut introduced.
         - B: background cut with your cut introduced.
         - S0: amount of signal without any cuts.
-        - gausssian: number of sigmas, default=2
+        - gausssian
     Outputs:
         - punzi figure of merit
 
@@ -169,3 +174,10 @@ def random_string(length=5):
     random.SystemRandom().shuffle(password_list)
     password = ''.join(password_list)
     return password
+
+def create_bins(input_list, var = 'gamma_EB'):
+    beanlist = []
+    for a, b in zip(input_list[:-1], input_list[1:]):
+        beanlist.append(f'{b}>{var}>={a}')
+    return beanlist
+

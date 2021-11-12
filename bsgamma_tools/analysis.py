@@ -418,20 +418,59 @@ def data_mc_compare(mc, data, drawer,
                                        color='black',label=dataname, 
                                        ax=ax[0])
 
-    ratio = y2/y1
+    ratio = (y2-y1)/y1
     ratio_err = ratio_error(y2, y1)
 
     line,caps,_ = ax[1].errorbar(bin_centers,ratio, yerr = ratio_err, xerr = bin_hwidth*0.5,
                          fmt='ko',
                          markersize=3,
                          ecolor = 'black')
-    ax[1].bar(bin_centers,ratio-1,width=bin_hwidth,color='gray',alpha=0.5,bottom=1)
+    ax[1].bar(bin_centers,ratio,width=bin_hwidth,color='gray',alpha=0.5,bottom=0)
     ax[1].set_xlim(ranges[0],ranges[1])
     yl = np.percentile(ratio, 100-percentile)
     ym = np.percentile(ratio, 0+percentile)
-    dev = max(yl-1, 1-ym)
-    ax[1].set_ylim(1-dev,1+dev)
+    quant_yl = np.quantile(ratio, .05)
+    quant_ym = np.quantile(ratio, .95)
+    bounds = max(quant_yl, quant_ym)
+    ax[1].set_ylim(-1, 1)
     ax[0].legend(loc='best')
     ax[0].set_ylabel(f'{yname}/bin')
     ax[1].set_xlabel(f'{xname}')
-    ax[1].set_ylabel(r'$\frac{\mathrm{Data}}{\mathrm{MC}}$')
+    ax[1].set_ylabel(r'$\frac{\mathrm{Data-MC}}{\mathrm{MC}}$')
+    ax[1].set_yticks([-1,0,1])
+
+def stacked_background(df, by, max_by=10, reverse = True, ax=None, colors = None, pdgise=True,
+                       isolate=None, isolate_name=None, include_other = False, other_name='other', legend_suffix=''):
+
+    pdg_codes = df[by].value_counts().keys()
+    if len(pdg_codes)<max_by:
+        max_by=len(pdg_codes)+1
+    if pdgise:
+        pdg_names = [legend_suffix+pdg_to_name(i,True) for i in pdg_codes[:max_by-1]]
+    else:
+        pdg_names = [legend_suffix+f'{i}' for i in pdg_codes[:max_by-1]]
+
+    top = pdg_codes[:max_by-1]
+
+    if isolate is not None:
+        df_isolate = df.query(f'{isolate}')
+        df_to_split = df.query(f'~({isolate})')
+    else:
+        df_to_split = df
+
+    if include_other:
+        draw_stack = [df_to_split.query(f'{by}=={code}') for code in top] + [df_to_split[~df_to_split[by].isin(top)]]
+        pdg_names += [legend_suffix+other_name]
+    else:
+        draw_stack = [df_to_split.query(f'{by}=={code}') for code in top]
+
+    if isolate is not None:
+        draw_stack.append(df_isolate[draw_col])
+        if isolate_name is not None:
+            pdg_names.append(legend_suffix+isolate_name)
+        else:
+            pdg_names.append(legend_suffix+isolate)
+    if reverse:
+        draw_stack.reverse()
+        pdg_names.reverse()
+    return draw_stack, pdg_names

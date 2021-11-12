@@ -30,3 +30,19 @@ class dataset_cache:
             return {k: v.arrays(columns, library='pd') for k, v in self.opened_paths.items()}
         else:
             raise KeyError('Unrecognised key, either undefined or not "total".')
+
+class UniversalStore(object):
+
+    store = []
+
+    def __init__(self):
+        raise NotImplementedError
+
+    def __getitem__(self, item):
+        if not item in self.store:
+            print(f"Store has no {item} registered, but will register one now")
+            self.store.append(item)
+            setattr(self, item, empty)
+        return getattr(self, item)
+
+
