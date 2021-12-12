@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from hepstats.splot import compute_sweights
 
 import b2plot
+
+from .helpers import pdg_to_name
+from .fit_tools import SWeightFit, MbcFit
 
 plt.style.use('belle2')
 golden = (1 + 5 ** 0.5) / 2
@@ -439,7 +443,7 @@ def data_mc_compare(mc, data, drawer,
     ax[1].set_ylabel(r'$\frac{\mathrm{Data-MC}}{\mathrm{MC}}$')
     ax[1].set_yticks([-1,0,1])
 
-def stacked_background(df, by, max_by=10, reverse = True, ax=None, colors = None, pdgise=True,
+def stacked_background(df, by, max_by=10, reverse = True, colors = None, pdgise=True,
                        isolate=None, isolate_name=None, include_other = False, other_name='other', legend_suffix=''):
 
     pdg_codes = df[by].value_counts().keys()
@@ -474,3 +478,180 @@ def stacked_background(df, by, max_by=10, reverse = True, ax=None, colors = None
         draw_stack.reverse()
         pdg_names.reverse()
     return draw_stack, pdg_names
+
+class EGammaSpectrum:
+
+    subtracted = None
+    built = None
+    sfitted = False
+    binned = False
+    custom = False
+    asymmetric = False
+
+    def __init__(self, original_dataset=None, bins=None):
+        #assert 'Btag_Mbc' in original_dataset and 'gamma_EB' in original_dataset, "please give the original dataset that contains Btag_Mbc and gamma_EB columns"
+        self.built = False
+        if not original_dataset is None:
+            self.original_gamma = original_dataset.gamma_EB.values
+            self.original_mbc = original_dataset.Btag_Mbc.values
+            self.sorter = self.original_mbc.argsort()
+        self.bins = bins
+        self.bin_centers = 0.5*(bins[:-1]+bins[1:])
+        self.bin_width = -0.5*(bins[:-1]-bins[1:])
+        print("E gamma spectrum created, please use self.from_bins() or self.from_sfit() to build")
+
+    def from_sfit(self, sfit):
+        assert not self.built, "Spectrum is already built. Create a new one!"
+        print(sfit)
+        print(SWeightFit)
+        assert isinstance(sfit, SWeightFit), "if building from sweights, please give a fitted SWeightFit"
+
+        self.weights = compute_sweights(sfit.full_fit, sfit.last_fit_data)
+        self.weights_crys = self.weights[sfit.yield_crys]
+        self.weights_cheb = self.weights[sfit.yield_cheb]
+        self.weights_argus = self.weights[sfit.yield_argus]
+
+        self.n_gamma, _  = np.histogram(self.original_gamma, bins=self.bins, weights=self.weights[sfit.yield_crys])
+
+        self.fit_uncertainty = np.zeros(len(self.bins)-1)
+        for gamma, weight in zip(self.original_gamma, self.weights[sfit.yield_crys]):
+            for n, (min_e, max_e) in enumerate(zip(self.bins[:-1], self.bins[1:])):
+                if max_e>gamma>min_e:
+                    self.fit_uncertainty[n] += weight**2
+
+        self.fit_uncertainty = np.sqrt(self.fit_uncertainty)
+
+        self.sfitted = True
+        self.built = True
+        self.subtracted = False
+
+    def from_binfit(self, binfit):
+        assert not self.built, "Spectrum is already built. Create a new one!"
+        #print(binfit)
+        #print(type(binfit))
+        #print(MbcFit)
+        #print(isinstance(binfit, MbcFit))
+        #print(type(binfit)==MbcFit)
+        #assert isinstance(binfit, MbcFit), "if building from binned fit, please give a fitted MbcFit"
+
+        self.n_gamma = np.array([count.numpy() for count in binfit.collector['yield_signal']])
+        e_u = np.array([binfit.last_result.params[v]['minuit_minos']['upper'] for v in binfit.collector['yield_signal']])
+        e_l = np.array([binfit.last_result.params[v]['minuit_minos']['lower'] for v in binfit.collector['yield_signal']])
+        self.fit_uncertainty = (e_l, e_u)
+
+        self.binned = True
+        self.built = True
+        self.subtracted = False
+        self.asymmetric = True
+    
+    def from_values(self, values, uncertainties):
+        self.n_gamma = np.array(values)
+        self.fit_uncertainty = np.array(uncertainties)
+        self.custom = True
+
+    def peak_scale(self):
+        raise NotImplementedError
+        peak_mbc = zfit.Space('mbc', (5.27, max_mbc+0.000))
+
+        peak_scales = [pdf.numeric_integrate(peak_mbc).numpy()[0] for pdf in fit.collector['signal']]
+
+    def plot_spectrum(self, target=None):
+        if self.sfitted:
+            self.plot_sweighted_spectrum(target)
+
+        if self.binned or self.custom:
+            self.plot_binned_spectrum(target)
+
+    def plot_binned_spectrum(self, target=None):
+
+        fig, ax = plt.subplots(1, 1)
+
+        ax.errorbar(self.bin_centers, self.n_gamma, yerr=np.array(self.fit_uncertainty), fmt='k.')
+
+        if not target is None:
+            ax.hist(target, bins=self.bins, histtype="step", label="target histogram", color='r', lw=1.5)
+        ax.set_xlabel("$E^B_{\gamma}$, GeV")
+        ax.set_ylabel("Crystal Ball yield")
+        ax.set_xlim(1.4, 3.5)
+        ax.set_ylim(-5, )
+        ax.legend(fontsize=15)
+
+    def plot_sweighted_spectrum(self, target=None):
+        fig, axs = plt.subplots(1, 2, figsize=(16,6))
+
+        axs[0].plot(self.original_mbc[self.sorter], self.weights_crys[self.sorter], label = '$w_\\mathrm{CB}$')
+        axs[0].plot(self.original_mbc[self.sorter], self.weights_cheb[self.sorter], label = '$w_\\mathrm{Chebyshev}$')
+        axs[0].plot(self.original_mbc[self.sorter], self.weights_argus[self.sorter], label = '$w_\\mathrm{Argus}$')
+        axs[0].plot(self.original_mbc[self.sorter], self.weights_argus[self.sorter] +\
+                                                    self.weights_cheb[self.sorter]  +\
+                                                    self.weights_crys[self.sorter], label = '$\Sigma w$')
+
+        axs[0].axhline(0, color="0.5")
+        axs[0].legend(fontsize=15)
+        axs[0].set_xlabel("$M_{bc}$, GeV")
+        axs[0].set_xlim(5.245, np.max(self.original_mbc)) 
+
+        axs[1].bar(self.bin_centers, self.n_gamma, self.bin_width*2, align='center', alpha=.5, label='weighted histogram')
+        if not target is None:
+            axs[1].hist(target, bins=self.bins, histtype="step", label="target histogram", color='r', lw=1.5)
+        axs[1].set_xlabel("$E^B_{\gamma}$, GeV")
+        axs[1].set_xlim(1.4, 3.5)
+        axs[1].set_ylim(-5, )
+        axs[1].legend(fontsize=15);
+
+    def __sub__(self, other):
+        if isinstance(other, float) or isinstance(other, int):
+            print('subtracting constant value')
+            raise NotImplementedError
+        if isinstance(other, EGammaSpectrum):
+            print('subtracting spectrum')
+            new_value = np.array(self.n_gamma) - np.array(other.n_gamma)
+            if self.asymmetric:
+                if other.asymmetric:
+                    new_uncertainty_u = np.sqrt(self.fit_uncertainty[1]**2 + other.fit_uncertainty[1]**2)
+                    new_uncertainty_l = np.sqrt(self.fit_uncertainty[0]**2 + other.fit_uncertainty[0]**2)
+                    new_uncertainty = (new_uncertainty_l, new_uncertainty_u)
+                else:
+                    new_uncertainty_u = np.sqrt(self.fit_uncertainty[1]**2 + other.fit_uncertainty**2)
+                    new_uncertainty_l = np.sqrt(self.fit_uncertainty[0]**2 + other.fit_uncertainty**2)
+                    new_uncertainty = (new_uncertainty_l, new_uncertainty_u)
+            else:
+                if other.asymmetric:
+                    new_uncertainty_u = np.sqrt(self.fit_uncertainty**2 + other.fit_uncertainty[1]**2)
+                    new_uncertainty_l = np.sqrt(self.fit_uncertainty**2 + other.fit_uncertainty[0]**2)
+                    new_uncertainty = (new_uncertainty_l, new_uncertainty_u)
+                else:
+                    new_uncertainty = np.sqrt(self.fit_uncertainty**2 + other.fit_uncertainty**2)
+            new_spectrum = EGammaSpectrum(bins=self.bins)
+            new_spectrum.from_values(new_value, new_uncertainty)
+
+            return new_spectrum
+
+        if isinstance(other, list) or isinstance(other, np.array):
+            print('subtracting a list of entries')
+
+    def __mul__(self, other):
+        if isinstance(other, float) or isinstance(other, int):
+            print('subtracting constant value')
+            new_value = np.array(self.n_gamma) * other
+
+            if self.asymmetric:
+                new_uncertainty_u = self.fit_uncertainty[1] * other
+                new_uncertainty_l = self.fit_uncertainty[0] * other
+                new_uncertainty = (new_uncertainty_l, new_uncertainty_u)
+            else:
+                new_uncertainty = np.sqrt(self.fit_uncertainty**2 * other)
+
+            new_spectrum = EGammaSpectrum(bins=self.bins)
+            new_spectrum.from_values(new_value, new_uncertainty)
+            if self.asymmetric:
+                new_spectrum.asymmetric = True
+
+            return new_spectrum
+
+        if isinstance(other, EGammaSpectrum):
+            print('subtracting spectrum')
+            raise NotImplementedError
+        if isinstance(other, list) or isinstance(other, np.array):
+            print('subtracting a list of entries')
+            raise NotImplementedError

@@ -74,7 +74,7 @@ def plot_model(model, data, nbins=50, scale=1, as_bp = False,plot_data=True, add
         ax_pull.set_xlim(lower, upper)
 
         if add_chi2:
-            st = sp.stats.chisquare(interped_values, n)
+            st = sp.stats.chisquare(n,interped_values)
             chi2 = st.statistic
             pval = st.pvalue
 
@@ -104,24 +104,32 @@ from zfit_physics.pdf import Argus
 import pandas as pd
 
 from prettytable import PrettyTable
-def pretty_print_result(result, params=None):
+def pretty_print_result(result, params=None, quick=False):
     print("creating pretty table")
     x = PrettyTable()
-    x.field_names = ["Parameter name", "Parameter value", "Low error", "Up error", "approx error", "hesse error"]
     print("getting errors")
     errors_approx = result.hesse(method="approx")
     errors_hesse = result.hesse(method="minuit_hesse")
-    errors = result.errors(method='minuit_minos')
+    if not quick:
+        errors = result.errors(method='minuit_minos')
+    else:
+        errors = None
+        print("skipping minos, because in quick mode")
     print("filling params")
     for param, val in result.params.items():
-        x.add_row([param.name, val['value'], errors[0][param]['lower'], errors[0][param]['upper'], errors_approx[param]['error'], errors_hesse[param]['error']])
+        if quick:
+            x.field_names = ["Parameter name", "Parameter value", "approx error", "hesse error"]
+            x.add_row([param.name, val['value'], errors_approx[param]['error'], errors_hesse[param]['error']])
+        else:
+            x.field_names = ["Parameter name", "Parameter value", "Low error", "Up error", "approx error", "hesse error"]
+            x.add_row([param.name, val['value'], errors[0][param]['lower'], errors[0][param]['upper'], errors_approx[param]['error'], errors_hesse[param]['error']])
+
     x.float_format = '.3'
     print("fit results done and done")
     print(x)
     return errors
 
 class MbcFit:
-    #obs = zfit.Space('mbc', (5.245, max_mbc+0.000))
 
     bin_list = np.array([1.4,1.6,1.8,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,5.0])
     bin_centers = 0.5*(bin_list[1:]+bin_list[:-1])
@@ -186,9 +194,9 @@ class MbcFit:
 
     def create_bins(self, input_list):
         beanlist = []
-        var = 'gamma_EB'
+        self.var = 'gamma_EB'
         for a, b in zip(input_list[:-1], input_list[1:]):
-            beanlist.append(f'{b}>{var}>={a}')
+            beanlist.append(f'{b}>{self.var}>={a}')
         self.bin_list = input_list
         self.bin_centers = 0.5*(self.bin_list[1:]+self.bin_list[:-1])
         return beanlist
@@ -391,7 +399,7 @@ class MbcFit:
 
 
     @timeit
-    def perform_mbc_fit(self, dataset=None):
+    def perform_mbc_fit(self, dataset=None, quick=False):
         for n, cut in enumerate(self.bin_strings):
             print(f"Including {cut}")
             deef = self.df_total.query(cut).Btag_Mbc.dropna()
@@ -409,7 +417,12 @@ class MbcFit:
                                                  data=self.collector['data_full'])
         full_result = self.minimizer.minimize(full_nll)
 
-        errors, new_result = pretty_print_result(full_result)
+        errors = pretty_print_result(full_result, quick=quick)
+
+        if not quick:
+            errors, new_result = errors
+        else:
+            new_result = None
 
         if full_result.valid or not new_result:
             self.last_result = full_result
@@ -431,7 +444,7 @@ class MbcFit:
         return full_result, type(full_result)
 
     @timeit
-    def perform_toy_mbc_fit(self, scale=1, dataset = None, weights_col = None, restore_default=True):
+    def perform_toy_mbc_fit(self, scale=1, dataset = None, weights_col = None, restore_default=True, quick=False):
         fit_data = []
         for n, cut in enumerate(self.bin_strings):
             if dataset is None:
@@ -450,7 +463,13 @@ class MbcFit:
         full_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.collector['full'], 
                                                  data=fit_data)
         full_result = self.minimizer.minimize(full_nll)
-        errors, new_result = pretty_print_result(full_result)
+
+        errors = pretty_print_result(full_result, quick=quick)
+
+        if not quick:
+            errors, new_result = errors
+        else:
+            new_result = None
 
         if full_result.valid or not new_result:
             self.last_result = full_result
@@ -509,16 +528,16 @@ class MbcFit:
                 cheb_low_error = self.last_result.params[self.collector['yield_cheb'][n]]["minuit_minos"]["lower"]
                 #pull = (signal_estimate - signal_count)/signal_error
 
-                up_ax.text(0.1, 0.9, 'sig estimate: $'+rf'{signal_estimate:.0f}\pm^{{{signal_up_error:.0f}}}_{{{-signal_low_error:.0f}}}'+'$', 
+                up_ax.text(0.05, 0.9, 'Crystal Ball: $'+rf'{signal_estimate:.0f}\pm^{{{signal_up_error:.0f}}}_{{{-signal_low_error:.0f}}}'+'$', 
                            transform=up_ax.transAxes)
-                up_ax.text(0.1, 0.8, 'argus estimate: $'+rf'{argus_estimate:.0f}\pm^{{{argus_up_error:.0f}}}_{{{-argus_low_error:.0f}}}'+'$', 
+                up_ax.text(0.05, 0.8, 'Argus: $'+rf'{argus_estimate:.0f}\pm^{{{argus_up_error:.0f}}}_{{{-argus_low_error:.0f}}}'+'$', 
                            transform=up_ax.transAxes)
-                up_ax.text(0.1, 0.7, 'bb estimate: $'+rf'{cheb_estimate:.0f}\pm^{{{cheb_up_error:.0f}}}_{{{-cheb_low_error:.0f}}}'+'$', 
+                up_ax.text(0.05, 0.7, 'Chebyshev: $'+rf'{cheb_estimate:.0f}\pm^{{{cheb_up_error:.0f}}}_{{{-cheb_low_error:.0f}}}'+'$', 
                            transform=up_ax.transAxes)
 
-            up_ax.text(0.1, 0.55, f'N datapoints: {signal_count:.0f}', 
+            up_ax.text(0.05, 0.55, f'N datapoints: {signal_count:.0f}', 
                        transform=up_ax.transAxes)
-            up_ax.text(0.1,0.41, cut, 
+            up_ax.text(0.6,0.91, '$'+cut.replace(f'{self.var}','E_{\gamma}^B').replace('>=','\geq').replace('<=','\leq')+'$',
                        transform=up_ax.transAxes)
         print('plot saved')
 
@@ -586,6 +605,7 @@ class MbcFit:
             bot_coeffs.append(mincoeffs)
             topbot_coeffs.append(maxmincoeffs)
             bottop_coeffs.append(minmaxcoeffs)
+        irrors, new_result = pretty_print_result(full_result)
 
             # This min and max coeff also includes the 0th coefficient, 
         top_coeffs = np.array(top_coeffs).flatten()
@@ -679,12 +699,13 @@ class MbcFit:
                 print(' --- ',n)
                 vector = [0]*n+[eig_val_set[n]**0.5]+[0]*(4-n)
                 variations = eig_vect_set.dot(vector)
+                print(variations)
 
                 for m, variation in enumerate(variations):
                     cov_par_set[enn][m].set_value(normal_values[m]+variation)
 
                 self.restore_prefit_values()
-                singular_result, _ = self.perform_toy_mbc_fit(dataset=dataset, scale=scale, restore_default=False)
+                singular_result, _ = self.perform_toy_mbc_fit(dataset=dataset, scale=scale, restore_default=False, quick=True)
                 singular_yields = np.array([yld.value().numpy() for yld in self.collector['yield_signal']])
                 all_variations.append(singular_yields-normal_yields)
 
@@ -692,7 +713,7 @@ class MbcFit:
                     cov_par_set[enn][m].set_value(normal_values[m]-variation)
 
                 self.restore_prefit_values()
-                singular_result, _ = self.perform_toy_mbc_fit(dataset=dataset, scale=scale, restore_default=False)
+                singular_result, _ = self.perform_toy_mbc_fit(dataset=dataset, scale=scale, restore_default=False, quick=True)
                 singular_yields = np.array([yld.value().numpy() for yld in self.collector['yield_signal']])
                 all_variations.append(singular_yields-normal_yields)
 
@@ -705,10 +726,241 @@ class MbcFit:
 
 
 
+class SWeightFit:
+    obs = None
+    minimizer = None
+    collector = None
+    ID = None
+    def __init__(self, df_peak, df_combinatorial, df_argus,  minimizer=None, obs=None):
+
+        self.df_peak = df_peak
+        self.df_combinatorial = df_combinatorial
+        self.df_argus = df_argus
+
+        self.df_total = pd.concat([df_peak, df_combinatorial, df_argus])
+
+        self.minimizer = zfit.minimize.Minuit(use_minuit_grad=True) if minimizer is None else minimizer
+        self.obs = obs
+        self.collector = defaultdict(lambda:[])
+        self.max_mbc = np.max(self.df_total.Btag_Mbc)
+
+        self.ID = random_string()
+
+    def init_cb_params(self):
+        # Crystal Ball
+        self.mu       = zfit.Parameter('mu_'+self.ID,    5.28,   lower=5.275, upper=5.285, step_size=0.001, floating=True)
+        self.sigma    = zfit.Parameter('sigma_'+self.ID, 1e-3 , lower=1e-4, upper=1e-2, step_size=0.5e-5 , floating=True)
+        self.alfa     = zfit.Parameter('alfa_'+self.ID,  0.2, step_size=0.1 , floating=True)
+        self.npar        = zfit.Parameter('n_'+self.ID,    15, step_size=0.1, floating=True)
+
+    def init_cheb_params(self):
+        # Polynomial
+        self.c1         = zfit.Parameter('c1_'+self.ID, 0.1, step_size=0.001, floating=True)
+        self.c2         = zfit.Parameter('c2_'+self.ID, -0.1, step_size=0.001, floating=True)
+        self.c3         = zfit.Parameter('c3_'+self.ID, 0.1, step_size=0.001, floating=True)
+        self.c4         = zfit.Parameter('c4_'+self.ID, -.01, step_size=0.001, floating=True)
+        self.c5         = zfit.Parameter('c5_'+self.ID, 0.01, step_size=0.001, floating=True)
+
+    def init_argus_params(self):
+        # Argus
+        self.m0 = zfit.Parameter('m0_'+self.ID, self.max_mbc,floating=True)
+        self.cpar  = zfit.Parameter('c_'+self.ID, -30,upper=0, step_size=0.1, floating=True)
+        self.ppar  = zfit.Parameter('p_'+self.ID,0.5,-5,5,step_size=0.01,floating=False)
+
+
+    def prefit(self):
+
+        self.init_cb_params()
+        self.init_cheb_params()
+        self.init_argus_params()
+
+        self.preparatory_crystal_peak_fit()
+        self.preparatory_argus_fit()
+        self.preparatory_cheb_fit()
+
+    def preparatory_crystal_peak_fit(self):
+
+        self.crys_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_peak.Btag_Mbc)
+
+        crys_unext = CrystalBall(obs=self.obs,
+                                 mu=self.mu,
+                                 sigma=self.sigma,
+                                 alpha=self.alfa,
+                                 n=self.npar,
+                                 name=f'cb_'+self.ID)
+
+        self.yield_crys = zfit.Parameter(f'yield_crys_'+self.ID, len(self.df_peak), lower=None, floating=True)
+        self.crys = crys_unext.create_extended(self.yield_crys)
+
+        crys_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.crys, 
+                                                 data=self.crys_data)
+        crys_result = self.minimizer.minimize(crys_nll)
+        errors, new_result = pretty_print_result(crys_result)
+
+        if crys_result.valid or not new_result:
+            self.crys_result = crys_result
+        else:
+            self.crys_result = new_result
+
+        self.mu.floating = False
+        self.sigma.floating = False
+        self.alfa.floating = False
+        self.npar.floating = False
+
+        return self.crys_result
+
+    def preparatory_cheb_fit(self):
+        self.cheb_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_combinatorial.Btag_Mbc)
+
+        cheb_unext = Chebyshev(obs=self.obs, 
+                               coeffs=[self.c1, self.c2, self.c3, self.c4, self.c5], 
+                               name=f'cheb_'+self.ID)
+
+        self.yield_cheb = zfit.Parameter(f'yield_cheb_'+self.ID, len(self.df_combinatorial), lower=None, floating=True)
+        self.cheb = cheb_unext.create_extended(self.yield_cheb)
 
 
 
+        cheb_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.cheb, 
+                                                 data=self.cheb_data)
+        cheb_result = self.minimizer.minimize(cheb_nll)
 
+        errors, new_result = pretty_print_result(cheb_result)
+
+        if cheb_result.valid or not new_result:
+            self.cheb_result = cheb_result
+        else:
+            self.cheb_result = new_result
+
+        self.c1.floating = False
+        self.c2.floating = False
+        self.c3.floating = False
+        self.c4.floating = False
+        self.c5.floating = False
+
+        return self.cheb_result
+
+    def preparatory_argus_fit(self):
+
+        self.argus_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_argus.Btag_Mbc)
+        argus_unext = Argus(obs=self.obs,
+                            m0=self.m0,
+                            p=self.ppar,
+                            c=self.cpar, 
+                            name=f'argus_'+self.ID)
+
+        self.yield_argus = zfit.Parameter(f'yield_argus_'+self.ID, len(self.df_argus), floating=True)
+        self.argus = argus_unext.create_extended(self.yield_argus)
+
+        argus_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.argus,
+                                                  data=self.argus_data)
+
+        argus_result = self.minimizer.minimize(argus_nll)
+        error, new_result = pretty_print_result(argus_result)
+
+        if argus_result.valid or not new_result:
+            self.argus_result = argus_result
+        else:
+            self.argus_result = new_result
+
+        self.m0.floating = False
+        self.ppar.floating = False
+        self.cpar.floating = True
+
+        return self.argus_result
+
+    def perform_mbc_fit(self):
+
+        self.full_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_total.Btag_Mbc)
+        self.last_fit_data = self.full_data
+
+        self.full_fit = zfit.pdf.SumPDF([self.argus, self.cheb, self.crys])
+        print(f"is full_fit extended?: {self.full_fit.is_extended}")
+
+        full_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.full_fit,
+                                                 data=self.full_data)
+
+        full_result = self.minimizer.minimize(full_nll)
+        error, new_result = pretty_print_result(full_result)
+
+        if full_result.valid or not new_result:
+            self.full_result = full_result
+            if not full_result.valid:
+                print("RESULT IS NOT VALID!")
+        else:
+            self.full_result = new_result
+
+        self.sampler = self.full_fit.create_sampler(n=20000, fixed_params=True)
+
+        return self.full_result
+
+    def perform_toy_mbc_fit(self, scale=1, dataset=None, weights_col=None, restore_default=True):
+        if dataset is None:
+            total_count = len(df_total)
+            self.sampler.resample(n=int(total_count*scale))
+            data = self.sampler
+        else:
+            print('using input data')
+            weights = None if weights_col is None else dataset[weights_col]
+            data = zfit.Data.from_pandas(df=dataset.Btag_Mbc.dropna(),
+                                         obs=self.obs,
+                                         weights=weights)
+        self.last_fit_data = data
+        if restore_default:
+            self.restore_prefit_values()
+
+        full_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.full_fit,
+                                                 data=data)
+
+        toy_result = self.minimizer.minimize(full_nll)
+        error, new_result = pretty_print_result(toy_result)
+
+        if toy_result.valid or not new_result:
+            self.toy_result = toy_result
+        else:
+            self.toy_result = new_result
+
+        return self.toy_result, self.last_fit_data
+
+    def restore_prefit_values(self):
+        self.yield_argus.set_value(self.argus_result.params[self.yield_argus]["value"])
+        self.yield_cheb.set_value(self.cheb_result.params[self.yield_cheb]["value"])
+        self.yield_crys.set_value(self.crys_result.params[self.yield_crys]["value"])
+        self.cpar.set_value(self.argus_result.params[self.cpar]["value"])
+
+    def restore_final_values(self):
+        self.yield_argus.set_value(self.full_result.params[self.yield_argus]["value"])
+        self.yield_cheb.set_value(self.full_result.params[self.yield_cheb]["value"])
+        self.yield_crys.set_value(self.full_result.params[self.yield_crys]["value"])
+        self.cpar.set_value(self.full_result.params[self.cpar]["value"])
+
+    def general_plotter(self, model, data, normalise=True, composite=False):
+
+        fig, ax = plt.subplots(2,1,gridspec_kw={'height_ratios': [1.618**2,1], 'hspace':0.05}, sharex=True,)
+
+        if composite:
+            plotter = plot_comp_model
+        else:
+            plotter = plot_model
+
+        plotter(model,
+                data, add_chi2=True, nbins=75,
+                as_bp=True, normalise=normalise,
+                axs=(ax[0], ax[1]))
+
+        ax[1].set_xlabel("tag-B $M_{bc}$, $GeV/c^2$")
+        ax[1].set_xticks([5.25,5.26,5.27,5.28,5.29])
+        ax[1].set_ylim(-2.5,2.5)
+        ax[1].set_yticks([-2,2])
+
+    def plot_peak_pdf(self, normalise=True):
+        self.general_plotter(self.crys, self.crys_data, normalise)
+    def plot_cheb_pdf(self, normalise=True):
+        self.general_plotter(self.cheb, self.cheb_data, normalise)
+    def plot_argus_pdf(self, normalise=True):
+        self.general_plotter(self.argus, self.argus_data, normalise)
+    def plot_full_fit(self, normalise=True):
+        self.general_plotter(self.full_fit, self.last_fit_data, normalise, composite=True)
 
 
 def correlation_plot(corr_result, params=None, fig=None, ax=None, fontsize=10):
