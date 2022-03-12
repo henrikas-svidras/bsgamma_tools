@@ -5,8 +5,8 @@ from hepstats.splot import compute_sweights
 
 import b2plot
 
-from .helpers import pdg_to_name
-from .fit_tools import SWeightFit, MbcFit
+from bsgamma_tools.helpers import pdg_to_name
+from bsgamma_tools.fit_tools import SWeightFit, MbcFit
 
 plt.style.use('belle2')
 golden = (1 + 5 ** 0.5) / 2
@@ -502,7 +502,7 @@ class EGammaSpectrum:
 
     def from_sfit(self, sfit):
         assert not self.built, "Spectrum is already built. Create a new one!"
-        print(sfit)
+        print(type(sfit))
         print(SWeightFit)
         assert isinstance(sfit, SWeightFit), "if building from sweights, please give a fitted SWeightFit"
 
@@ -600,6 +600,7 @@ class EGammaSpectrum:
         axs[1].legend(fontsize=15);
 
     def __sub__(self, other):
+        print(type(other))
         if isinstance(other, float) or isinstance(other, int):
             print('subtracting constant value')
             raise NotImplementedError
@@ -627,8 +628,9 @@ class EGammaSpectrum:
 
             return new_spectrum
 
-        if isinstance(other, list) or isinstance(other, np.array):
-            print('subtracting a list of entries')
+        #if isinstance(other, list) or isinstance(other, np.array):
+        #    print('subtracting a list of entries')
+        #    raise NotImplementedError
 
     def __mul__(self, other):
         if isinstance(other, float) or isinstance(other, int):

@@ -107,22 +107,24 @@ from prettytable import PrettyTable
 def pretty_print_result(result, params=None, quick=False):
     print("creating pretty table")
     x = PrettyTable()
-    print("getting errors")
-    errors_approx = result.hesse(method="approx")
-    errors_hesse = result.hesse(method="minuit_hesse")
     if not quick:
+        print("getting minos errors")
         errors = result.errors(method='minuit_minos')
     else:
         errors = None
         print("skipping minos, because in quick mode")
-    print("filling params")
+        print("getting approx errors")
+        errors_approx = result.hesse(method="approx")
+        print("getting hesse errors")
+        errors_hesse = result.hesse(method="minuit_hesse")
+        print("filling params")
     for param, val in result.params.items():
         if quick:
             x.field_names = ["Parameter name", "Parameter value", "approx error", "hesse error"]
             x.add_row([param.name, val['value'], errors_approx[param]['error'], errors_hesse[param]['error']])
         else:
-            x.field_names = ["Parameter name", "Parameter value", "Low error", "Up error", "approx error", "hesse error"]
-            x.add_row([param.name, val['value'], errors[0][param]['lower'], errors[0][param]['upper'], errors_approx[param]['error'], errors_hesse[param]['error']])
+            x.field_names = ["Parameter name", "Parameter value", "Low error", "Up error"]
+            x.add_row([param.name, val['value'], errors[0][param]['lower'], errors[0][param]['upper']])
 
     x.float_format = '.3'
     print("fit results done and done")
@@ -147,18 +149,22 @@ class MbcFit:
 
     lower=None
 
+    lowsig=None
+
     c_floaty=False
 
     sampler = None
 
     def __init__(self, df_peak, df_combinatorial, df_continuum, obs,
-                 cheb_bin_groups = None, argus_bin_groups = None,
-                 lower=None, c_floaty=False, cheb_floaty=False, minimizer=None):
+                 cheb_bin_groups = None, argus_bin_groups = None, weights_col = None,
+                 lower=None, lowsig=None, c_floaty=False, cheb_floaty=False, minimizer=None):
         self.df_peak = df_peak
         self.df_combinatorial = df_combinatorial
         self.df_continuum = df_continuum
         self.df_total = pd.concat([df_peak, df_combinatorial, df_continuum])
         self.df_bkg = pd.concat([df_combinatorial, df_continuum])
+
+        self.weights_col = weights_col
 
         self.max_mbc = max(self.df_total.Btag_Mbc)
         self.bin_strings = self.create_bins(self.bin_list)
@@ -168,6 +174,8 @@ class MbcFit:
         self.collector = defaultdict(lambda:[])
 
         self.lower = lower
+        self.lowsig = lowsig
+
 
         self.c_floaty = c_floaty
         self.cheb_floaty = cheb_floaty
@@ -213,13 +221,15 @@ class MbcFit:
 
 
     @timeit
-    def preparatory_signal_peak_fit(self): 
+    def preparatory_signal_peak_fit(self, quick=False): 
 
         self.init_cb_params()
 
         for n, cut in enumerate(self.bin_strings):
-            deef = self.df_peak.query(cut).Btag_Mbc
-            data = zfit.Data.from_pandas(obs=self.obs, df=deef)
+            cut_df = self.df_peak.query(cut)
+            deef = cut_df.Btag_Mbc
+            weights = None if self.weights_col is None else cut_df[self.weights_col]
+            data = zfit.Data.from_pandas(obs=self.obs, df=deef, weights=weights)
 
             crys_unext = CrystalBall(obs=self.obs, mu=self.mu, 
                                      sigma=self.sigma, 
@@ -227,7 +237,7 @@ class MbcFit:
                                      n=self.npar,  
                                      name=f'cb_{n}_'+self.ID)
 
-            yield_crys = zfit.Parameter(f'yield_crys_{n}_'+self.ID, len(deef), lower=None, floating=True)
+            yield_crys = zfit.Parameter(f'yield_crys_{n}_'+self.ID, len(deef), lower=self.lowsig, floating=True)
             crys = crys_unext.create_extended(yield_crys)
             self.collector['data_signal'].append(data)
             self.collector['signal'].append(crys)
@@ -236,7 +246,12 @@ class MbcFit:
         crys_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.collector['signal'], 
                                                  data=self.collector['data_signal'])
         crys_result = self.minimizer.minimize(crys_nll)
-        errors, new_result = pretty_print_result(crys_result)
+        errors = pretty_print_result(crys_result, quick)
+
+        if not quick:
+            errors, new_result = errors
+        else:
+            new_result = None
 
         if crys_result.valid or not new_result:
             self.crys_result = crys_result
@@ -250,7 +265,7 @@ class MbcFit:
 
 
     @timeit    
-    def preparatory_cheb_fit(self):
+    def preparatory_cheb_fit(self, quick=False):
         counter = 0
         for enn, n_bin_group in enumerate(self.cheb_bin_groups):
             c0 = zfit.Parameter(f'c0_{enn}_'+self.ID, 1, step_size=0.001, floating=False)
@@ -262,8 +277,10 @@ class MbcFit:
             print(f"Group {enn}")
             for n, cut in enumerate(self.bin_strings[counter:counter+n_bin_group]):
                 print(f"Including {cut}")
-                deef = self.df_combinatorial.query(cut).Btag_Mbc
-                data = zfit.Data.from_pandas(obs=self.obs, df=deef)
+                cut_df = self.df_combinatorial.query(cut)
+                deef = cut_df.Btag_Mbc
+                weights = None if self.weights_col is None else cut_df[self.weights_col]
+                data = zfit.Data.from_pandas(obs=self.obs, df=deef, weights=weights)
 
                 cheb_unext = Chebyshev(obs=self.obs, coeffs=[c1,c2,c3,c4,c5], coeff0=c0,
                                        name=f'cheb_{counter+n}_'+self.ID)
@@ -288,7 +305,12 @@ class MbcFit:
                                                  data=self.collector['data_cheb'])
         cheb_result = self.minimizer.minimize(cheb_nll)
 
-        errors, new_result = pretty_print_result(cheb_result)
+        errors = pretty_print_result(cheb_result, quick)
+
+        if not quick:
+            errors, new_result = errors
+        else:
+            new_result = None
 
         if cheb_result.valid or not new_result:
             self.cheb_result = cheb_result
@@ -296,7 +318,7 @@ class MbcFit:
             self.cheb_result = new_result
 
     @timeit
-    def preparatory_argus_fit(self):
+    def preparatory_argus_fit(self, quick=False):
 
         self.init_argus_params()
 
@@ -308,50 +330,67 @@ class MbcFit:
             for n, cut in enumerate(self.bin_strings[counter:counter+n_bin_group]):
                 print(f"Including {cut}")
 
-                deef = self.df_continuum.query(cut).Btag_Mbc.dropna()
-                data = zfit.Data.from_pandas(obs=self.obs, df=deef)
+                cut_df = self.df_continuum.query(cut)
+                deef = cut_df.Btag_Mbc
+                weights = None if self.weights_col is None else cut_df[self.weights_col]
+                print(1)
+                data = zfit.Data.from_pandas(obs=self.obs, df=deef, weights=weights)
 
+                print(2)
                 argus_unext = Argus(obs=self.obs,
                                     m0=self.m0,
                                     p=self.p,
                                     c=c, name=f'argus_{counter+n}_'+self.ID)
 
+                print(3)
                 yield_argus = zfit.Parameter(f'yield_argus_{counter+n}_'+self.ID, len(deef), lower=self.lower,
                                              floating=True)
+                print(4)
                 argus = argus_unext.create_extended(yield_argus)
+                print(5)
                 self.collector['data_argus'].append(data)
+                print(6)
                 self.collector['argus'].append(argus)
+                print(7)
                 self.collector['shared_c'].append(c)
+                print(8)
                 self.collector['yield_argus'].append(yield_argus)
 
-                c_standalone = zfit.Parameter(f'c_{counter+n}_standalone_'+self.ID, -40,step_size=0.001)
-                standalone_argus = Argus(obs=self.obs, m0=self.m0, 
-                                         p=self.p, 
-                                         c=c_standalone, name='Standalone Argus_'+self.ID)
-                standalone_argus_nll = zfit.loss.UnbinnedNLL(model=standalone_argus, data=data)
-                standalone_argus_result = self.minimizer.minimize(standalone_argus_nll)
-                standalone_errors = standalone_argus_result.hesse(method="approx")
-                self.collector['c_standalone'].append(c_standalone.numpy())
-                self.collector['c_standalone_err'].append(standalone_errors[c_standalone]['error'])
+                print(9)
+                #c_standalone = zfit.Parameter(f'c_{counter+n}_standalone_'+self.ID, -40,step_size=0.001)
+                #standalone_argus = Argus(obs=self.obs, m0=self.m0, 
+                #                         p=self.p, 
+                #                         c=c_standalone, name='Standalone Argus_'+self.ID)
+                #standalone_argus_nll = zfit.loss.UnbinnedNLL(model=standalone_argus, data=data)
+                #standalone_argus_result = self.minimizer.minimize(standalone_argus_nll)
+                #standalone_errors = standalone_argus_result.hesse(method="approx")
+                #self.collector['c_standalone'].append(c_standalone.numpy())
+                #self.collector['c_standalone_err'].append(standalone_errors[c_standalone]['error'])
             counter += n_bin_group
 
-        argus_nll = zfit.loss.ExtendedUnbinnedNLL(model=self.collector['argus'],
-                                                  data=self.collector['data_argus'])
+        argus_nll = zfit.loss.ExtendedUnbinnedNLL(model=np.array(self.collector['argus']),
+                                                  data=np.array(self.collector['data_argus']))
         argus_result = self.minimizer.minimize(argus_nll)
-        error, new_result = pretty_print_result(argus_result)
+
+        errors = pretty_print_result(argus_result, quick)
+
+        if not quick:
+            errors, new_result = errors
+        else:
+            new_result = None
 
         if argus_result.valid or not new_result:
             self.argus_result = argus_result
         else:
             self.argus_result = new_result
 
-    def prefit(self):
+    def prefit(self, quick=False):
         print('Sig peak')
-        self.preparatory_signal_peak_fit()
+        self.preparatory_signal_peak_fit(quick)
         print('Argus')
-        self.preparatory_argus_fit()
+        self.preparatory_argus_fit(quick)
         print('Chebi')
-        self.preparatory_cheb_fit()
+        self.preparatory_cheb_fit(quick)
         print('Done')
 
         for cpar in self.collector['shared_c']:
@@ -402,8 +441,10 @@ class MbcFit:
     def perform_mbc_fit(self, dataset=None, quick=False):
         for n, cut in enumerate(self.bin_strings):
             print(f"Including {cut}")
-            deef = self.df_total.query(cut).Btag_Mbc.dropna()
-            data= zfit.Data.from_pandas(obs=self.obs, df=deef)
+            cut_df = self.df_total.query(cut)
+            deef = cut_df.Btag_Mbc.dropna()
+            weights = None if self.weights_col is None else cut_df[self.weights_col]
+            data = zfit.Data.from_pandas(obs=self.obs, df=deef, weights=weights)
 
             full = zfit.pdf.SumPDF([self.collector['argus'][n], 
                                     self.collector['cheb'][n], 
@@ -535,6 +576,19 @@ class MbcFit:
                 up_ax.text(0.05, 0.7, 'Chebyshev: $'+rf'{cheb_estimate:.0f}\pm^{{{cheb_up_error:.0f}}}_{{{-cheb_low_error:.0f}}}'+'$', 
                            transform=up_ax.transAxes)
 
+            else:
+                signal_error = self.last_result.params[self.collector['yield_signal'][n]]["error"]
+                argus_error = self.last_result.params[self.collector['yield_argus'][n]]["error"]
+                cheb_error = self.last_result.params[self.collector['yield_cheb'][n]]["error"]
+                #pull = (signal_estimate - signal_count)/signal_error
+
+                up_ax.text(0.05, 0.9, 'Crystal Ball: $'+rf'{signal_estimate:.0f}\pm {signal_error:.0f}'+'$', \
+                           transform=up_ax.transAxes)
+                up_ax.text(0.05, 0.8, 'Argus: $'+rf'{argus_estimate:.0f}\pm {argus__error:.0f}'+'$', \
+                           transform=up_ax.transAxes)
+                up_ax.text(0.05, 0.7, 'Chebyshev: $'+rf'{cheb_estimate:.0f}\pm{cheb_up_error:.0f}'+'$', \
+                           transform=up_ax.transAxes)
+
             up_ax.text(0.05, 0.55, f'N datapoints: {signal_count:.0f}', 
                        transform=up_ax.transAxes)
             up_ax.text(0.6,0.91, '$'+cut.replace(f'{self.var}','E_{\gamma}^B').replace('>=','\geq').replace('<=','\leq')+'$',
@@ -605,7 +659,7 @@ class MbcFit:
             bot_coeffs.append(mincoeffs)
             topbot_coeffs.append(maxmincoeffs)
             bottop_coeffs.append(minmaxcoeffs)
-        irrors, new_result = pretty_print_result(full_result)
+        errors, new_result = pretty_print_result(full_result)
 
             # This min and max coeff also includes the 0th coefficient, 
         top_coeffs = np.array(top_coeffs).flatten()
@@ -763,7 +817,7 @@ class SWeightFit:
 
     def init_argus_params(self):
         # Argus
-        self.m0 = zfit.Parameter('m0_'+self.ID, self.max_mbc,floating=True)
+        self.m0 = zfit.Parameter('m0_'+self.ID, self.max_mbc,floating=False)
         self.cpar  = zfit.Parameter('c_'+self.ID, -30,upper=0, step_size=0.1, floating=True)
         self.ppar  = zfit.Parameter('p_'+self.ID,0.5,-5,5,step_size=0.01,floating=False)
 
@@ -778,9 +832,9 @@ class SWeightFit:
         self.preparatory_argus_fit()
         self.preparatory_cheb_fit()
 
-    def preparatory_crystal_peak_fit(self):
+    def preparatory_crystal_peak_fit(self, quick=False):
 
-        self.crys_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_peak.Btag_Mbc)
+        self.crys_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_peak.Btag_Mbc.dropna())
 
         crys_unext = CrystalBall(obs=self.obs,
                                  mu=self.mu,
@@ -809,8 +863,8 @@ class SWeightFit:
 
         return self.crys_result
 
-    def preparatory_cheb_fit(self):
-        self.cheb_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_combinatorial.Btag_Mbc)
+    def preparatory_cheb_fit(self, quick=False):
+        self.cheb_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_combinatorial.Btag_Mbc.dropna())
 
         cheb_unext = Chebyshev(obs=self.obs, 
                                coeffs=[self.c1, self.c2, self.c3, self.c4, self.c5], 
@@ -840,9 +894,9 @@ class SWeightFit:
 
         return self.cheb_result
 
-    def preparatory_argus_fit(self):
+    def preparatory_argus_fit(self, quick=False):
 
-        self.argus_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_argus.Btag_Mbc)
+        self.argus_data = zfit.Data.from_pandas(obs=self.obs, df=self.df_argus.Btag_Mbc.dropna())
         argus_unext = Argus(obs=self.obs,
                             m0=self.m0,
                             p=self.ppar,
