@@ -90,9 +90,9 @@ class VariableHybridModel:
         deff.loc[:, 'br_weight']                    = nominal_value(self.N_BB_tot * scale / len(deff))
         deff.loc[:, 'incl_weight']                  = 1
         deff.loc[:, 'up_weight']                    = self.up_weight(scale)
-        deff.loc[:,f'up_weight-{resonance_name}']   = self.up_weight(scale)
+        deff.loc[:,f'{resonance_name}-up']          = self.up_weight(scale)
         deff.loc[:, 'down_weight']                  = self.down_weight(scale)
-        deff.loc[:,f'down_weight-{resonance_name}'] = self.down_weight(scale)
+        deff.loc[:,f'{resonance_name}-down']        = self.down_weight(scale)
 
         if charged:
 
@@ -229,44 +229,44 @@ class VariableHybridModel:
         self.par_variation_hweights = {}
 
         for resonance in self.charged_names:
-            self.charged_resonance_all[f'down_weight-{resonance}'].fillna(1, inplace=True)
-            self.charged_resonance_all[f'up_weight-{resonance}'].fillna(1, inplace=True)
-            self.mixed_resonance_all.loc[:,f'down_weight-{resonance}'] = 1
-            self.mixed_resonance_all.loc[:,f'up_weight-{resonance}'] = 1
+            self.charged_resonance_all.loc[:,f'{resonance}-down'].fillna(1, inplace=True)
+            self.charged_resonance_all.loc[:,f'{resonance}-up'].fillna(1, inplace=True)
+            self.mixed_resonance_all.loc[:,f'{resonance}-down'] = 1
+            self.mixed_resonance_all.loc[:,f'{resonance}-up'] = 1
 
             varied_hw_up = make_hybrid_weights(self.charged_inclusive.g_EB, 
                                                self.charged_resonance_all.g_EB, 
                                                self.charged_hybrid_bins,
                                                self.charged_inclusive["br_weight"], 
-                                               self.charged_resonance_all["br_weight"]*self.charged_resonance_all[f"up_weight-{resonance}"])
+                                               self.charged_resonance_all["br_weight"]*self.charged_resonance_all[f"{resonance}-up"])
             
             varied_hw_down = make_hybrid_weights(self.charged_inclusive.g_EB, 
                                                  self.charged_resonance_all.g_EB, 
                                                  self.charged_hybrid_bins,
                                                  self.charged_inclusive["br_weight"], 
-                                                 self.charged_resonance_all["br_weight"]*self.charged_resonance_all[f"down_weight-{resonance}"])
+                                                 self.charged_resonance_all["br_weight"]*self.charged_resonance_all[f"{resonance}-down"])
 
             self.charged_resvariation_hweights[resonance+'-up'] = varied_hw_up
             self.charged_resvariation_hweights[resonance+'-down'] = varied_hw_down
     
 
         for resonance in self.mixed_names:
-            self.mixed_resonance_all[f'down_weight-{resonance}'].fillna(1, inplace=True)
-            self.mixed_resonance_all[f'up_weight-{resonance}'].fillna(1, inplace=True)
-            self.charged_resonance_all.loc[:,f'down_weight-{resonance}'] = 1
-            self.charged_resonance_all.loc[:,f'up_weight-{resonance}'] = 1
+            self.mixed_resonance_all[f'{resonance}-down'].fillna(1, inplace=True)
+            self.mixed_resonance_all[f'{resonance}-up'].fillna(1, inplace=True)
+            self.charged_resonance_all.loc[:,f'{resonance}-down'] = 1
+            self.charged_resonance_all.loc[:,f'{resonance}-up'] = 1
             
             varied_hw_up = make_hybrid_weights(self.mixed_inclusive.g_EB, 
                                                self.mixed_resonance_all.g_EB, 
                                                self.mixed_hybrid_bins,
                                                self.mixed_inclusive["br_weight"], 
-                                               self.mixed_resonance_all["br_weight"]*self.mixed_resonance_all[f"up_weight-{resonance}"])
+                                               self.mixed_resonance_all["br_weight"]*self.mixed_resonance_all[f"{resonance}-up"])
             
             varied_hw_down = make_hybrid_weights(self.mixed_inclusive.g_EB, 
                                                  self.mixed_resonance_all.g_EB, 
                                                  self.mixed_hybrid_bins,
                                                  self.mixed_inclusive["br_weight"], 
-                                                 self.mixed_resonance_all["br_weight"]*self.mixed_resonance_all[f"down_weight-{resonance}"])
+                                                 self.mixed_resonance_all["br_weight"]*self.mixed_resonance_all[f"{resonance}-down"])
 
             self.mixed_resvariation_hweights[resonance+'-up'] = varied_hw_up
             self.mixed_resvariation_hweights[resonance+'-down'] = varied_hw_down
@@ -323,8 +323,8 @@ class VariableHybridModel:
                                                md["br_weight"], 
                                                self.mixed_resonance_all["br_weight"])
 
-            self.par_variation_hweights[f'charged_var_{n}'] = varied_hw_up
-            self.par_variation_hweights[f'mixed_var_{n}'] = varied_hw_down
+            self.par_variation_hweights[f'charged_var_{n}'] = varied_ch
+            self.par_variation_hweights[f'mixed_var_{n}'] = varied_md
         
     def make_reweights(self, reweight_bins, density=False):
 
@@ -385,18 +385,18 @@ class VariableHybridModel:
 
             self.charged_resonance_mc.loc[self.charged_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes), 'up_weight'] = self.up_weight(val)
             self.charged_resonance_mc.loc[self.charged_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes), 'down_weight'] = self.down_weight(val)
-            self.charged_resonance_mc.loc[self.charged_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'up_weight-{mode}'] = self.up_weight(val)
-            self.charged_resonance_mc.loc[self.charged_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'down_weight-{mode}'] = self.down_weight(val)
+            self.charged_resonance_mc.loc[self.charged_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'{mode}-up'] = self.up_weight(val)
+            self.charged_resonance_mc.loc[self.charged_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'{mode}-down'] = self.down_weight(val)
 
-            self.charged_resonance_mc.loc[:,f'up_weight-{mode}'].fillna(1, inplace=True)
-            self.charged_resonance_mc.loc[:,f'down_weight-{mode}'].fillna(1, inplace=True)
-            self.charged_inclusive_mc.loc[:,f'up_weight-{mode}'] = 1
-            self.charged_inclusive_mc.loc[:,f'down_weight-{mode}'] = 1
+            self.charged_resonance_mc.loc[:,f'{mode}-up'].fillna(1, inplace=True)
+            self.charged_resonance_mc.loc[:,f'{mode}-down'].fillna(1, inplace=True)
+            self.charged_inclusive_mc.loc[:,f'{mode}-up'] = 1
+            self.charged_inclusive_mc.loc[:,f'{mode}-down'] = 1
 
-            self.mixed_resonance_mc.loc[:,f'up_weight-{mode}'] = 1
-            self.mixed_resonance_mc.loc[:,f'down_weight-{mode}'] = 1
-            self.mixed_inclusive_mc.loc[:,f'up_weight-{mode}'] = 1
-            self.mixed_inclusive_mc.loc[:,f'down_weight-{mode}'] = 1
+            self.mixed_resonance_mc.loc[:,f'{mode}-up'] = 1
+            self.mixed_resonance_mc.loc[:,f'{mode}-down'] = 1
+            self.mixed_inclusive_mc.loc[:,f'{mode}-up'] = 1
+            self.mixed_inclusive_mc.loc[:,f'{mode}-down'] = 1
         
         for mode, val in self.mixed_scales.items():
             print(f'Adding weights for {mode}')
@@ -405,18 +405,18 @@ class VariableHybridModel:
 
             self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes), 'up_weight'] = self.up_weight(val)
             self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes), 'down_weight'] = self.down_weight(val)
-            self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'up_weight-{mode}'] = self.up_weight(val)
-            self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'down_weight-{mode}'] = self.down_weight(val)
+            self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'{mode}-up'] = self.up_weight(val)
+            self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'{mode}-up'] = self.down_weight(val)
 
-            self.mixed_resonance_mc.loc[:,f'up_weight-{mode}'].fillna(1, inplace=True)
-            self.mixed_resonance_mc.loc[:,f'down_weight-{mode}'].fillna(1, inplace=True)
-            self.mixed_inclusive_mc.loc[:,f'up_weight-{mode}'] = 1
-            self.mixed_inclusive_mc.loc[:,f'down_weight-{mode}'] = 1
+            self.mixed_resonance_mc.loc[:,f'{mode}-up'].fillna(1, inplace=True)
+            self.mixed_resonance_mc.loc[:,f'{mode}-down'].fillna(1, inplace=True)
+            self.mixed_inclusive_mc.loc[:,f'{mode}-up'] = 1
+            self.mixed_inclusive_mc.loc[:,f'{mode}-down'] = 1
 
-            self.charged_resonance_mc.loc[:,f'up_weight-{mode}'] = 1
-            self.charged_resonance_mc.loc[:,f'down_weight-{mode}'] = 1
-            self.charged_inclusive_mc.loc[:,f'up_weight-{mode}'] = 1
-            self.charged_inclusive_mc.loc[:,f'down_weight-{mode}'] = 1
+            self.charged_resonance_mc.loc[:,f'{mode}-up'] = 1
+            self.charged_resonance_mc.loc[:,f'{mode}-down'] = 1
+            self.charged_inclusive_mc.loc[:,f'{mode}-up'] = 1
+            self.charged_inclusive_mc.loc[:,f'{mode}-down'] = 1
         
         
         ch_wgts = self.charged_weights[np.digitize(self.charged_inclusive_mc['gamma_mcEB'], self.charged_hybrid_bins) - 1]
@@ -925,7 +925,7 @@ class VariableHybridModel:
 
             n_ex_up,_ = np.histogram(merged_res.gamma_mcEB, 
                                     bins = drawbins, \
-                                    weights = merged_res[f'up_weight-{key}'])
+                                    weights = merged_res[f'{key}-up'])
 
             n_in_down,_ = np.histogram(merged_varied_inc.gamma_mcEB, 
                                     bins = drawbins, \
@@ -933,7 +933,7 @@ class VariableHybridModel:
 
             n_ex_down,_ = np.histogram(merged_res.gamma_mcEB, 
                                     bins = drawbins, \
-                                    weights = merged_res[f'down_weight-{key}'])
+                                    weights = merged_res[f'{key}-down'])
 
             n_up = n_in_up+n_ex_up
             n_down = n_in_down+n_ex_down
