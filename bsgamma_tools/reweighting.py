@@ -958,6 +958,43 @@ class VariableHybridModel:
 
         self.cov_mtx_sig = {}
         
+
+        merged_varied_inc = pd.concat([self.charged_inclusive_mc, self.mixed_inclusive_mc])
+
+        merged_res = pd.concat([self.charged_resonance_mc, self.mixed_resonance_mc])
+
+        n_in_up,_ = np.histogram(merged_varied_inc.gamma_mcEB, 
+                                bins = drawbins, \
+                                weights = merged_varied_inc['varied-up'])
+
+        n_ex_up,_ = np.histogram(merged_res.gamma_mcEB, 
+                                bins = drawbins)
+
+        n_in_down,_ = np.histogram(merged_varied_inc.gamma_mcEB, 
+                                    bins = drawbins, \
+                                    weights = merged_varied_inc['varied-down'])
+
+        n_ex_down,_ = np.histogram(merged_res.gamma_mcEB, 
+                                    bins = drawbins)
+
+        n_up = n_in_up+n_ex_up
+        n_down = n_in_down+n_ex_down
+
+        errors_up = n_up - self.n_c
+        cov_up = np.outer(errors_up, errors_up)
+
+        errors_down = n_down - self.n_c
+        cov_down = np.outer(errors_down, errors_down)
+
+        cov = (cov_up + cov_down) / 2
+
+        diag = cov.diagonal()
+        self.error_inc = np.sqrt(diag)
+
+    def __calculate_inclBR_variation_uncertainty(self,drawbins):
+
+        self.cov_mtx_sig = {}
+        
         # For Charged
 
         charged_hw_up = self.sigvariation_hweights['charged-up']
