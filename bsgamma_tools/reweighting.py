@@ -804,7 +804,7 @@ class VariableHybridModel:
         hybrid_weights_inclusive  = self.mixed_inclusive_mc['hweight']   * \
                                     self.mixed_inclusive_mc['br_weight'] * \
                                     self.mixed_inclusive_mc['reweight']  * \
-                                    self.mixed_leftover
+                                    self.mixed_inclusive_mc["scaling"]
 
         hybrid_weights_resonances = self.mixed_resonance_mc['hweight'] * \
                                     self.mixed_resonance_mc['br_weight']
