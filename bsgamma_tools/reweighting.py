@@ -415,7 +415,7 @@ class VariableHybridModel:
             # self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes), 'down_weight'] = self.down_weight(val)
 
             self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'{mode}-up'] = self.up_weight(val)
-            self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'{mode}-up'] = self.down_weight(val)
+            self.mixed_resonance_mc.loc[self.mixed_resonance_mc['Bsig_d0_mcpdg'].isin(pdgcodes),f'{mode}-down'] = self.down_weight(val)
 
             self.mixed_resonance_mc.loc[:,f'{mode}-up'].fillna(1, inplace=True)
             self.mixed_resonance_mc.loc[:,f'{mode}-down'].fillna(1, inplace=True)
