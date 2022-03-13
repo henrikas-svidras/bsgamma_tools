@@ -568,7 +568,7 @@ class VariableHybridModel:
         bp.hist(self.charged_inclusive.g_EB, bins=drawbins, label='generated', density=True, lw=2, ax=ax)
         bp.hist(self.charged_inclusive_mc[var], bins=drawbins, label='generic', density=True, lw=2, ax=ax)
         bp.hist(self.charged_inclusive_mc[var], bins=drawbins, label='reweighted', ls=':', 
-                weights=self.charged_inclusive_mc[var]['reweight'], density=True, lw=5, ax=ax)
+                weights=self.charged_inclusive_mc['reweight'], density=True, lw=5, ax=ax)
 
         make_gamma_axes(ax=ax,additional=' generated')
         
@@ -579,7 +579,7 @@ class VariableHybridModel:
         bp.hist(self.mixed_inclusive.g_EB, bins=drawbins, label='generated', density=True, lw=2, ax=ax)
         bp.hist(self.mixed_inclusive_mc[var], bins=drawbins, label='generic', density=True, lw=2, ax=ax)
         bp.hist(self.mixed_inclusive_mc[var], bins=drawbins, label='reweighted', ls=':', 
-                weights=self.mixed_inclusive_mc[var]['reweight'], density=True, lw=5, ax=ax)
+                weights=self.mixed_inclusive_mc['reweight'], density=True, lw=5, ax=ax)
 
         make_gamma_axes(ax=ax, additional=' generated')
 
