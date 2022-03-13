@@ -884,7 +884,7 @@ class VariableHybridModel:
         n2, _, _ = bp.hist(inclusive_total[var], ls='--',
                            bins=drawbins, color='red', lw=2,
                            weights=inclusive_total["scaling"]*\
-                                   inclusive_total["reweight"]
+                                   inclusive_total["reweight"]*\
                                    inclusive_total['br_weight'],
                            label='Kagan Neubert',
                            ax=ax)
