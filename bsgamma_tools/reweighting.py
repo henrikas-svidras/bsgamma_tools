@@ -993,16 +993,16 @@ class VariableHybridModel:
         mx_wgts = self.mixed_weights[-1 + np.digitize(self.mixed_inclusive_mc.gamma_mcEB, bins=self.mixed_hybrid_bins)]
 
         ch_rwgts = self.charged_reweights[-1 + np.digitize(self.charged_inclusive_mc.gamma_mcEB, bins=self.reweight_bins)]
-        mx_rwgts = self.mixed_reweights[-1 + np.digitize(self.mixed_inclusive_mc..gamma_mcEB, bins=self.reweight_bins)]
+        mx_rwgts = self.mixed_reweights[-1 + np.digitize(self.mixed_inclusive_mc.gamma_mcEB, bins=self.reweight_bins)]
 
 
-        main_inc.loc[:,'varied-up'] = ch_wgts_up * (self.inclusive_BR.nominal_value+self.inclusive_BR.std_dev) / main_leftover * main_rwgts
+        # main_inc.loc[:,'varied-up'] = ch_wgts_up * (self.inclusive_BR.nominal_value+self.inclusive_BR.std_dev) / main_leftover * main_rwgts
 
-        main_inc.loc[:,'varied-down'] = ch_wgts_down * (self.inclusive_BR.nominal_value-self.inclusive_BR.std_dev) / main_leftover * main_rwgts
+        # main_inc.loc[:,'varied-down'] = ch_wgts_down * (self.inclusive_BR.nominal_value-self.inclusive_BR.std_dev) / main_leftover * main_rwgts
 
-        other_inc.loc[:,'varied-up'] = mx_wgts *3.49e-4 / other_leftover * other_rwgts
+        # other_inc.loc[:,'varied-up'] = mx_wgts *3.49e-4 / other_leftover * other_rwgts
 
-        other_inc.loc[:,'varied-down'] = mx_wgts *3.49e-4 / other_leftover * other_rwgts
+        # other_inc.loc[:,'varied-down'] = mx_wgts *3.49e-4 / other_leftover * other_rwgts
 
 
         for key in ['+', '-']:
