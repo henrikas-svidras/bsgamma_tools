@@ -793,7 +793,8 @@ class VariableHybridModel:
 
         n2, _, _ = bp.hist(self.charged_inclusive_mc[var], ls='--',
                            bins=drawbins, color='red', lw=2,
-                           weights=self.charged_inclusive_mc["incl_weight"]*\
+                           weights=self.charged_inclusive_mc["scaling"]*\
+                                   self.charged_inclusive_mc["reweight"]*\
                                    self.charged_inclusive_mc['br_weight'],
                            label='Kagan Neubert',
                            ax=ax)
@@ -841,7 +842,8 @@ class VariableHybridModel:
 
         n2, _, _ = bp.hist(self.mixed_inclusive_mc[var], ls='--',
                            bins=drawbins, color='red', lw=2,
-                           weights=self.mixed_inclusive_mc["incl_weight"]*\
+                           weights=self.mixed_inclusive_mc["scaling"]*\
+                                   self.mixed_inclusive_mc["reweight"]*\
                                    self.mixed_inclusive_mc['br_weight'],
                            label='Kagan Neubert',
                            ax=ax)
@@ -881,7 +883,9 @@ class VariableHybridModel:
 
         n2, _, _ = bp.hist(inclusive_total[var], ls='--',
                            bins=drawbins, color='red', lw=2,
-                           weights=inclusive_total["incl_weight"]*inclusive_total['br_weight'],
+                           weights=inclusive_total["scaling"]*\
+                                   inclusive_total["reweight"]
+                                   inclusive_total['br_weight'],
                            label='Kagan Neubert',
                            ax=ax)
         
