@@ -874,7 +874,6 @@ class VariableHybridModel:
     def calculate_BR_variation_uncertainty(self,drawbins):
     
         self.cov_mtx = {}
-        reso_hweights = {**self.charged_resvariation_hweights, **self.mixed_resvariation_hweights}
 
         merged_varied_inc = pd.concat([self.charged_inclusive_mc, self.mixed_inclusive_mc])
         merged_res = pd.concat([self.charged_resonance_mc, self.mixed_resonance_mc])
