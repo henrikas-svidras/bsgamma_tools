@@ -965,14 +965,14 @@ class VariableHybridModel:
 
         n_in_up,_ = np.histogram(merged_varied_inc.gamma_mcEB, 
                                 bins = drawbins, \
-                                weights = merged_varied_inc['varied-up'])
+                                weights = merged_varied_inc['hweight-up'])
 
         n_ex_up,_ = np.histogram(merged_res.gamma_mcEB, 
                                 bins = drawbins)
 
         n_in_down,_ = np.histogram(merged_varied_inc.gamma_mcEB, 
                                     bins = drawbins, \
-                                    weights = merged_varied_inc['varied-down'])
+                                    weights = merged_varied_inc['hweight-down'])
 
         n_ex_down,_ = np.histogram(merged_res.gamma_mcEB, 
                                     bins = drawbins)
