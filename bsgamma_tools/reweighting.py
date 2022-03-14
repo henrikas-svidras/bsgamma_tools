@@ -461,9 +461,8 @@ class VariableHybridModel:
                                               True
                           )
 
-            self.charged_inclusive_mc.loc[:, f"par_reweight_{n}"] = temp_bp_reweight[-1 +np.digitize(self.charged_inclusive_mc.gamma_mcEB, bins=self.reweight_bins)]
-            self.mixed_inclusive_mc.loc[:,f'par_reweight_{n}'] = temp_bz_reweight[-1 +np.digitize(self.mixed_inclusive_mc.gamma_mcEB, bins=self.reweight_bins)]
-
+            self.charged_inclusive_mc.loc[:, f"par_reweight_{n}"] = temp_bp_reweight
+            self.mixed_inclusive_mc.loc[:,f'par_reweight_{n}'] = temp_bz_reweight
 
             self.charged_resonance_mc.loc[:, f"par_reweight_{n}"] = 1
             self.mixed_resonance_mc.loc[:, f"par_reweight_{n}"] = 1
