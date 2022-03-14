@@ -1009,47 +1009,44 @@ class VariableHybridModel:
 
         for n, (ch, md) in enumerate(zip(self.charged_variations, self.mixed_variations)):
 
-            # varied_weight_ch = self.par_variation_hweights[f'charged-var-{n}'][np.add(
-            #                                 np.digitize(self.charged_inclusive_mc.gamma_mcEB, 
-            #                                             bins=self.charged_hybrid_bins),
-            #                                 -1)
-            #                                ]
+            varied_weight_ch = self.par_variation_hweights[f'charged-var-{n}'][np.add(
+                                            np.digitize(self.charged_inclusive_mc.gamma_mcEB, 
+                                                        bins=self.charged_hybrid_bins),
+                                            -1)
+                                           ]
 
-            # varied_weight_md = self.par_variation_hweights[f"mixed-var-{n}"][np.add(
-            #                                                                  np.digitize(self.mixed_inclusive_mc.gamma_mcEB, 
-            #                                                                             bins=self.mixed_hybrid_bins),
-            #                                                                 -1)
-            #                                                                 ]
+            varied_weight_md = self.par_variation_hweights[f"mixed-var-{n}"][np.add(
+                                                                             np.digitize(self.mixed_inclusive_mc.gamma_mcEB, 
+                                                                                        bins=self.mixed_hybrid_bins),
+                                                                            -1)
+                                                                            ]
 
-            # temp_bp_reweight = make_reweights(ch.g_EB,
-            #                                   self.charged_inclusive_default.g_EB,
-            #                                   self.reweight_bins,
-            #                                   self.charged_inclusive_mc.gamma_mcEB,
-            #                                   True
-            #           )
+            temp_bp_reweight = make_reweights(ch.g_EB,
+                                              self.charged_inclusive_default.g_EB,
+                                              self.reweight_bins,
+                                              self.charged_inclusive_mc.gamma_mcEB,
+                                              True
+                      )
 
-            # temp_bz_reweight = make_reweights(md.g_EB,
-            #                                   self.mixed_inclusive_default.g_EB,
-            #                                   self.reweight_bins,
-            #                                   self.mixed_inclusive_mc.gamma_mcEB,
-            #                                   True
-            #               )
+            temp_bz_reweight = make_reweights(md.g_EB,
+                                              self.mixed_inclusive_default.g_EB,
+                                              self.reweight_bins,
+                                              self.mixed_inclusive_mc.gamma_mcEB,
+                                              True
+                          )
 
 
 
-            # self.charged_inclusive_mc.loc[:,f'par_weight_{n}'] = varied_weight_ch * (3.49e-4 / self.charged_leftover) * temp_bp_reweight
+            self.charged_inclusive_mc.loc[:,f'par_weight_{n}'] = varied_weight_ch * (3.49e-4 / self.charged_leftover) * temp_bp_reweight
 
-            # self.mixed_inclusive_mc.loc[:,f'par_weight_{n}'] = varied_weight_md * (3.49e-4 / self.mixed_leftover) * temp_bz_reweight
+            self.mixed_inclusive_mc.loc[:,f'par_weight_{n}'] = varied_weight_md * (3.49e-4 / self.mixed_leftover) * temp_bz_reweight
 
-            # self.charged_resonance_mc.loc[:,f'par_weight_{n}'] = 1
+            self.charged_resonance_mc.loc[:,f'par_weight_{n}'] = 1
 
-            # self.mixed_resonance_mc.loc[:,f'par_weight_{n}'] = 1
+            self.mixed_resonance_mc.loc[:,f'par_weight_{n}'] = 1
 
             merged_varied_inc = pd.concat([self.charged_inclusive_mc, self.mixed_inclusive_mc])
             merged_res = pd.concat([self.charged_resonance_mc, self.mixed_resonance_mc])
-            print(merged_varied_inc[f'par_weight_{n}'].isna().value_counts())
-            merged_varied_inc[f'par_weight_{n}'].fillna(1, inplace=True)
-
 
             n_sigvar,_ = np.histogram(merged_varied_inc.gamma_mcEB, 
                                       bins = drawbins, \
