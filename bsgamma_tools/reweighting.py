@@ -438,7 +438,7 @@ class VariableHybridModel:
             self.charged_inclusive_mc.loc[:,f'{mode}-up'] = self.charged_weights[ -1 + np.digitize(self.charged_inclusive_mc.gamma_mcEB, self.charged_hybrid_bins)]
             self.charged_inclusive_mc.loc[:,f'{mode}-down'] = self.charged_weights[ -1 + np.digitize(self.charged_inclusive_mc.gamma_mcEB, self.charged_hybrid_bins)]
         
-        for n in range(len(self.charged_variations)):
+        for n, (ch, md) in enumerate(self.charged_variations, self.mixed_variations):
             
 
             self.charged_inclusive_mc.loc[:,f'par_weight_{n}'] = self.par_variation_hweights[f'charged_var_{n}'][-1 +np.digitize(self.charged_inclusive_mc.gamma_mcEB, bins=self.charged_hybrid_bins)]
