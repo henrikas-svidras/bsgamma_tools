@@ -147,7 +147,7 @@ class VariableHybridModel:
             deff.loc[:,'br_weight'] = self.N_inclusive_md / len(deff)
             self.mixed_variations.append(deff)
 
-    def register_mc_datasets(self, dataframe, charged):
+    def register_mc_datasets(self, dataframe, charged, matching_codes = None):
 
         dataframe.loc[:,'hweight'] = 1.
         dataframe.loc[:,'up_weight'] = 1.
@@ -155,19 +155,22 @@ class VariableHybridModel:
         dataframe.loc[:,'br_weight'] = 1.
         dataframe.loc[:,'rel_weight'] = 1.
 
+        if matching_codes is None:
+            matching_codes = [0]
+
         if charged:
             self.charged_inclusive_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsp_codes[:2])) & \
-                                                  (dataframe['Btag_isSignal'] == 1) & \
+                                                  (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                   (dataframe['isSigSideCorrect'] == 1)]
             self.charged_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsp_codes[2:])) & \
-                                                  (dataframe['Btag_isSignal'] == 1) & \
+                                                  (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                   (dataframe['isSigSideCorrect'] == 1)]
         else:
             self.mixed_inclusive_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsz_codes[:2])) & \
-                                                (dataframe['Btag_isSignal'] == 1) & \
+                                                (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                 (dataframe['isSigSideCorrect'] == 1)]
             self.mixed_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsz_codes[2:])) & \
-                                                (dataframe['Btag_isSignal'] == 1) & \
+                                                (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                 (dataframe['isSigSideCorrect'] == 1)]    
 
 
@@ -1006,43 +1009,7 @@ class VariableHybridModel:
 
         self.cov_mtx_var = {}
 
-        for n, (ch, md) in enumerate(zip(self.charged_variations, self.mixed_variations)):
-
-            # varied_weight_ch = self.par_variation_hweights[f'charged-var-{n}'][np.add(
-            #                                 np.digitize(self.charged_inclusive_mc.gamma_mcEB, 
-            #                                             bins=self.charged_hybrid_bins),
-            #                                 -1)
-            #                                ]
-
-            # varied_weight_md = self.par_variation_hweights[f"mixed-var-{n}"][np.add(
-            #                                                                  np.digitize(self.mixed_inclusive_mc.gamma_mcEB, 
-            #                                                                             bins=self.mixed_hybrid_bins),
-            #                                                                 -1)
-            #                                                                 ]
-
-            # temp_bp_reweight = make_reweights(ch.g_EB,
-            #                                   self.charged_inclusive_default.g_EB,
-            #                                   self.reweight_bins,
-            #                                   self.charged_inclusive_mc.gamma_mcEB,
-            #                                   True
-            #           )
-
-            # temp_bz_reweight = make_reweights(md.g_EB,
-            #                                   self.mixed_inclusive_default.g_EB,
-            #                                   self.reweight_bins,
-            #                                   self.mixed_inclusive_mc.gamma_mcEB,
-            #                                   True
-            #               )
-
-
-
-            # self.charged_inclusive_mc.loc[:,f'par_weight_{n}'] = varied_weight_ch * (3.49e-4 / self.charged_leftover) * temp_bp_reweight
-
-            # self.mixed_inclusive_mc.loc[:,f'par_weight_{n}'] = varied_weight_md * (3.49e-4 / self.mixed_leftover) * temp_bz_reweight
-
-            # self.charged_resonance_mc.loc[:,f'par_weight_{n}'] = 1
-
-            # self.mixed_resonance_mc.loc[:,f'par_weight_{n}'] = 1
+        for n, _ in enumerate(zip(self.charged_variations, self.mixed_variations)):
 
             merged_varied_inc = pd.concat([self.charged_inclusive_mc, self.mixed_inclusive_mc])
             merged_res = pd.concat([self.charged_resonance_mc, self.mixed_resonance_mc])
