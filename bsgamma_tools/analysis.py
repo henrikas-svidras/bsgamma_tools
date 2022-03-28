@@ -212,15 +212,16 @@ def calculate_peaky_codes(sig_df, plot=False,
         distance = jensenshannon(test, reference)
         
         jsdists[names[n]] = distance
-        
-        if distance>0.3:
-            draw_stack_unpeaky.append(s.Btag_Mbc)
-            names_unpeaky.append(names[n]+f' ({distance:.2f})')
-            jsdist_unpeaky.append(distance)
-        else:
-            draw_stack_peaky.append(s.Btag_Mbc)
-            names_peaky.append(names[n]+f' ({distance:.2f})')
-            jsdist_peaky.append(distance)
+
+        if plot:
+            if distance>0.3:
+                draw_stack_unpeaky.append(s.Btag_Mbc)
+                names_unpeaky.append(names[n]+f' ({distance:.2f})')
+                jsdist_unpeaky.append(distance)
+            else:
+                draw_stack_peaky.append(s.Btag_Mbc)
+                names_peaky.append(names[n]+f' ({distance:.2f})')
+                jsdist_peaky.append(distance)
             
 
 
