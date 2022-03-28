@@ -199,7 +199,7 @@ def calculate_peaky_codes(sig_df, plot=False,
     jsdist_unpeaky = []
     
     bins = np.linspace(5.245,5.291,30)
-    reference = np.histogram(reference_stack[0], bins=bins)[0]
+    reference, _ = np.histogram(reference_stack, bins=bins)
 
     names = [name.replace('.0','') for name in names]
     
