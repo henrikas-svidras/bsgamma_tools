@@ -47,5 +47,6 @@ safe = {
 
     ### For var_to_string
 
-    "Bsig_pi0Prob":r"$\mathcal{P}_{\pi^0\rightarrow\gamma\gamma}$"
+    "Bsig_pi0Prob":r"$\mathcal{P}_{\pi^0\rightarrow\gamma\gamma}$",
+    "Bsig_etaProb":r"$\mathcal{P}_{\eta\rightarrow\gamma\gamma}$"
 }
