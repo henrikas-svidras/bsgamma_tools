@@ -1,4 +1,6 @@
 
+import numpy as np
+
 def var_to_string(var):
     """Changes some of the commonly used variables that I often use to a nice string name with the expected unit
     Input:
@@ -48,5 +50,7 @@ safe = {
     ### For var_to_string
 
     "Bsig_pi0Prob":r"$\mathcal{P}_{\pi^0\rightarrow\gamma\gamma}$",
-    "Bsig_etaProb":r"$\mathcal{P}_{\eta\rightarrow\gamma\gamma}$"
+    "Bsig_etaProb":r"$\mathcal{P}_{\eta\rightarrow\gamma\gamma}$",
+
+    "gamma_bins":np.array([1.4,1.6,1.8,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,5.0]),
 }
