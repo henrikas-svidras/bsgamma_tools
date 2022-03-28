@@ -3,7 +3,10 @@ import numpy as np
 import pandas as pd
 from hepstats.splot import compute_sweights
 
-import b2plot
+import b2plot as bp
+
+from scipy.spatial.distance import jensenshannon
+import yaml
 
 from bsgamma_tools.helpers import pdg_to_name
 from bsgamma_tools.fit_tools import SWeightFit, MbcFit
@@ -165,6 +168,97 @@ def stacked_background(df, by, max_by=10, reverse = True, colors = None, pdgise=
         draw_stack.reverse()
         pdg_names.reverse()
     return draw_stack, pdg_names
+
+
+
+def calculate_peaky_codes(sig_df, plot=False,
+                          save_path=None,
+                          suffix=''):
+    
+    df_to_break_down = sig_df
+    stack, names = stacked_background(df_to_break_down, 
+                                      by="Btag_mcErrors", 
+                                      include_other=False, 
+                                      max_by=100, 
+                                      pdgise=False)
+    
+    if plot:
+        fig, ax = plt.subplots(1,3, figsize=(20,6))
+    
+        draw_stack = [s.Btag_Mbc for s in stack]
+        draw_stack_unpeaky = []
+        draw_stack_peaky = []
+        
+    reference_stack = df_to_break_down.query('Btag_mcErrors==0').Btag_Mbc
+    
+    jsdists = {}
+    
+    names_peaky = []
+    names_unpeaky = []
+    jsdist_peaky = []
+    jsdist_unpeaky = []
+    
+    bins = np.linspace(5.245,5.291,30)
+    reference = np.histogram(reference_stack[0], bins=bins)[0]
+
+    names = [name.replace('.0','') for name in names]
+    
+    for n, s in enumerate(stack):
+        
+        if len(stack)<50:
+            continue
+        
+        test = np.histogram(s.Btag_Mbc, bins=bins)[0]
+        distance = jensenshannon(test, reference)
+        
+        jsdists[names[n]] = distance
+        
+        if distance>0.3:
+            draw_stack_unpeaky.append(s.Btag_Mbc)
+            names_unpeaky.append(names[n]+f' ({distance:.2f})')
+            jsdist_unpeaky.append(distance)
+        else:
+            draw_stack_peaky.append(s.Btag_Mbc)
+            names_peaky.append(names[n]+f' ({distance:.2f})')
+            jsdist_peaky.append(distance)
+            
+
+
+    if plot:
+        
+        draw_stack = [pd.concat(draw_stack[:-9])]+draw_stack[-9:] if len(draw_stack)>9 else draw_stack
+        label_all = ['other']+names[-9:] if len(names)>9 else names
+
+        draw_stack_peaky = [pd.concat(draw_stack_peaky[:-9])]+draw_stack_peaky[-9:] if len(draw_stack_peaky)>9 else draw_stack_peaky
+        label_peaky = ['other']+names_peaky[-9:] if len(names_peaky)>9 else names_peaky
+
+        draw_stack_unpeaky = [pd.concat(draw_stack_unpeaky[:-9])]+draw_stack_unpeaky[-9:] if len(draw_stack_unpeaky)>9 else draw_stack_unpeaky
+        label_unpeaky = ['other']+names_unpeaky[-9:] if len(names_unpeaky)>9 else names_unpeaky
+
+    
+        
+        _,_,_ = bp.stacked(draw_stack,         label = label_all,     bins=bins, ax=ax[0])
+        _,_,_ = bp.stacked(draw_stack_peaky,   label = label_peaky,   bins=bins, ax=ax[1])
+        _,_,_ = bp.stacked(draw_stack_unpeaky, label = label_unpeaky, bins=bins, ax=ax[2])
+
+        for axis in ax:
+
+            axis.legend(loc='upper left', title='MC error code')
+            axis.set_xlabel('tag-$B~M_{bc}$, GeV/$c^2$ ')
+            axis.set_xlim((min(bins),max(bins)))
+
+        ax[0].text(0.7,1.01,r'All',transform=ax[0].transAxes)
+        ax[1].text(0.7,1.01,'Peaking',transform=ax[1].transAxes)
+        ax[2].text(0.7,1.01,'Less peaking',transform=ax[2].transAxes)
+        
+        if save_path:
+            fig.savefig(f'{save_path}/error_code_splitting{suffix}.pdf', bbox_inches='tight')
+    
+    if save_path:
+        with open(f'{save_path}/error_code_distances.yaml', 'w') as file:
+            yaml.dump(jsdists, file)
+    
+    return jsdists
 
 #################
 #### Classes ####
