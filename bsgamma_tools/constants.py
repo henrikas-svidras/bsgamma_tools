@@ -46,8 +46,8 @@ varsafe = {
     ### For var_to_string
 
     "gamma_ECMS": r"$E_{\gamma}^{CMS}$, GeV",
-    "gamma_E": r"$E_{\gamma}$, GeV",
     "gamma_EB": r"$E_{\gamma}^B$, GeV",
+    "gamma_E": r"$E_{\gamma}$, GeV",
 
     ### For var_to_string
 
