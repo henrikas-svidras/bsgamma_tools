@@ -1,5 +1,6 @@
 
 import numpy as np
+from uncertainties import ufloat
 
 def var_to_string(var):
     """Changes some of the commonly used variables that I often use to a nice string name with the expected unit
@@ -53,4 +54,28 @@ safe = {
     "Bsig_etaProb":r"$\mathcal{P}_{\eta\rightarrow\gamma\gamma}$",
 
     "gamma_bins":np.array([1.4,1.6,1.8,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,5.0]),
+
+    
 }
+
+scales_plus = { 
+    'K*(1410)+': ufloat(0.000027100, 0.000007000), 
+    'K*(892)+': ufloat(0.000039180, 0.000002200), 
+    'K*(1680)+': ufloat(0.000066700, 0.000015500), 
+    'K(2)*(1430)+': ufloat(0.000013770, 0.000004000), 
+    'K(1)(1270)+': ufloat(0.000043800, 0.000006500),
+    'K(1)(1400)+': ufloat(0.000009700, 0.000004500),
+    'rho(770)+': ufloat(0.000000980,0.000000250),
+}
+scales_plus['Xsgamma'] = 3.49e-4 - np.sum(list(scales_plus.values()))
+
+scales_zero = { 
+    'K(1)(1400)0':ufloat(0.000006500, 0.000006500), 
+    'K(1)(1270)0':ufloat(0.000043000, 0.000015000), 
+    'K*(892)0': ufloat(0.000041770,0.000002500), 
+    'rho(770)0':ufloat(0.000000860, 0.000000150), 
+    'K*(1680)0':ufloat(0.000001700, 0.000001700), 
+    'K(2)*(1430)0':ufloat(0.000012370, 0.000002400), 
+    'omega(782)':ufloat(0.000000440, 0.000000180),
+}
+scales_zero['Xsgamma'] = 3.49e-4 - np.sum(list(scales_zero.values()))

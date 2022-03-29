@@ -10,6 +10,7 @@ import yaml
 
 from bsgamma_tools.helpers import pdg_to_name
 from bsgamma_tools.fit_tools import SWeightFit, MbcFit
+from bsgamma_tools.constants import safe
 
 plt.style.use('belle2')
 golden = (1 + 5 ** 0.5) / 2
@@ -171,7 +172,7 @@ def stacked_background(df, by, max_by=10, reverse = True, colors = None, pdgise=
 
 
 
-def calculate_peaky_codes(sig_df, plot=False,
+def calculate_peaky_codes(sig_df, threshold=0.3, plot=False,
                           save_path=None,
                           suffix=''):
     
@@ -214,7 +215,7 @@ def calculate_peaky_codes(sig_df, plot=False,
         jsdists[names[n]] = distance
 
         if plot:
-            if distance>0.3:
+            if distance>threshold:
                 draw_stack_unpeaky.append(s.Btag_Mbc)
                 names_unpeaky.append(names[n]+f' ({distance:.2f})')
                 jsdist_unpeaky.append(distance)
@@ -260,6 +261,23 @@ def calculate_peaky_codes(sig_df, plot=False,
             yaml.dump(jsdists, file)
     
     return jsdists
+
+def return_generic_signal(dataframe, charged, inclusive = False, resonant = False, name="truth"):
+
+    if charged:
+        codes = safe["Inclusive Xsu modes"]
+    else:
+        codes = safe["Inclusive Xsd modes"]
+
+    if inclusive:
+        codes = codes[:2]
+    elif resonant:
+        codes = codes[2:]
+
+    dataframe[(dataframe['Bsig_d0_mcpdg'].isin(codes)) & \
+              (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
+              (dataframe['isSigSideCorrect'] == 1), name] = 1
+
 
 #################
 #### Classes ####

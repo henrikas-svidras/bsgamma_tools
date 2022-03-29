@@ -333,30 +333,25 @@ class MbcFit:
                 cut_df = self.df_continuum.query(cut)
                 deef = cut_df.Btag_Mbc
                 weights = None if self.weights_col is None else cut_df[self.weights_col]
-                print(1)
                 data = zfit.Data.from_pandas(obs=self.obs, df=deef, weights=weights)
 
-                print(2)
+    
                 argus_unext = Argus(obs=self.obs,
                                     m0=self.m0,
                                     p=self.p,
                                     c=c, name=f'argus_{counter+n}_'+self.ID)
 
-                print(3)
+    
                 yield_argus = zfit.Parameter(f'yield_argus_{counter+n}_'+self.ID, len(deef), lower=self.lower,
                                              floating=True)
-                print(4)
-                argus = argus_unext.create_extended(yield_argus)
-                print(5)
-                self.collector['data_argus'].append(data)
-                print(6)
-                self.collector['argus'].append(argus)
-                print(7)
-                self.collector['shared_c'].append(c)
-                print(8)
-                self.collector['yield_argus'].append(yield_argus)
 
-                print(9)
+                argus = argus_unext.create_extended(yield_argus)
+    
+                self.collector['data_argus'].append(data)
+                self.collector['argus'].append(argus)
+                self.collector['shared_c'].append(c)
+
+                self.collector['yield_argus'].append(yield_argus)
                 #c_standalone = zfit.Parameter(f'c_{counter+n}_standalone_'+self.ID, -40,step_size=0.001)
                 #standalone_argus = Argus(obs=self.obs, m0=self.m0, 
                 #                         p=self.p, 
