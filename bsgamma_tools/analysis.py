@@ -278,7 +278,8 @@ def return_generic_signal(dataframe, mode, matching_codes = None, inclusive = Fa
         codes = codes[:2]
     elif resonant:
         codes = codes[2:]
-
+    print(codes)
+    print(matching_codes)
     dataframe[(dataframe['Bsig_d0_mcpdg'].isin(codes)) & \
               (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
               (dataframe['isSigSideCorrect'] == 1), name] = 1
