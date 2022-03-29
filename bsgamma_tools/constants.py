@@ -10,7 +10,7 @@ def var_to_string(var):
         - (string) nicely formatted LaTex string
     """
     
-    for swap in safe:
+    for swap in varsafe:
         var = var.replace(swap, safe[swap])
 
     return var
@@ -22,9 +22,8 @@ def cut_to_string(cut):
     Output:
         - (string) nicely formatted LaTex string
     """
-    cut
 
-    for swap in safe:
+    for swap in varsafe:
         cut = cut.replace(swap, safe[swap])
     
     cut = cut.replace(" < ", "<"). replace("<", " < ")
@@ -41,7 +40,9 @@ safe = {
                             313, 10313, 315, 20313, 113, 223, 30313,
                            -313,-10313,-315,-20313,-113,-223,-30313,
                            ],
-
+    "gamma_bins":np.array([1.4,1.6,1.8,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,5.0]),
+}
+varsafe = {
     ### For var_to_string
 
     "gamma_ECMS": r"$E_{\gamma}^{CMS}$, GeV",
@@ -53,7 +54,6 @@ safe = {
     "Bsig_pi0Prob":r"$\mathcal{P}_{\pi^0\rightarrow\gamma\gamma}$",
     "Bsig_etaProb":r"$\mathcal{P}_{\eta\rightarrow\gamma\gamma}$",
 
-    "gamma_bins":np.array([1.4,1.6,1.8,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,5.0]),
 
     
 }
