@@ -411,6 +411,7 @@ class EGammaSpectrum:
 
     def __sub__(self, other):
         print(type(other))
+        print(type(self))
         if isinstance(other, float) or isinstance(other, int):
             print('subtracting constant value')
             raise NotImplementedError
