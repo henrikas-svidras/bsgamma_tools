@@ -262,15 +262,17 @@ def calculate_peaky_codes(sig_df, threshold=0.3, plot=False,
     
     return jsdists
 
-def return_generic_signal(dataframe, charged, matching_codes = None, inclusive = False, resonant = False, name="truth"):
+def return_generic_signal(dataframe, mode, matching_codes = None, inclusive = False, resonant = False, name="truth"):
 
     if matching_codes is None:
         matching_codes = [0]
 
-    if charged:
+    if mode=='charged':
         codes = safe["Inclusive Xsu modes"]
-    else:
+    elif mode=='mixed':
         codes = safe["Inclusive Xsd modes"]
+    elif mode =='combined':
+        codes = safe["Inclusive Xsd modes"] + safe["Inclusive Xsu modes"]
 
     if inclusive:
         codes = codes[:2]
