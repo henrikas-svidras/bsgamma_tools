@@ -925,11 +925,6 @@ class VariableHybridModel:
 
         for key in self.charged_names+self.mixed_names:
 
-            print(merged_varied_inc.loc[:, key+'-up'].isna().value_counts())
-            print(merged_varied_inc.loc[:, key+'-down'].isna().value_counts())
-
-
-
             n_in_up,_ = np.histogram(merged_varied_inc.gamma_mcEB, 
                                     bins = drawbins, \
                                     weights = merged_varied_inc[key+'-up']*merged_varied_inc['reweight']*merged_varied_inc['scaling'])
