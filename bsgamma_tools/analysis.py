@@ -262,7 +262,10 @@ def calculate_peaky_codes(sig_df, threshold=0.3, plot=False,
     
     return jsdists
 
-def return_generic_signal(dataframe, charged, inclusive = False, resonant = False, name="truth"):
+def return_generic_signal(dataframe, charged, matching_codes = None, inclusive = False, resonant = False, name="truth"):
+
+    if matching_codes is None:
+        matching_codes = [0]
 
     if charged:
         codes = safe["Inclusive Xsu modes"]
@@ -277,7 +280,8 @@ def return_generic_signal(dataframe, charged, inclusive = False, resonant = Fals
     dataframe[(dataframe['Bsig_d0_mcpdg'].isin(codes)) & \
               (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
               (dataframe['isSigSideCorrect'] == 1), name] = 1
-
+    
+    return dataframe
 
 #################
 #### Classes ####
