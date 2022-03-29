@@ -11,7 +11,7 @@ def var_to_string(var):
     """
     
     for swap in varsafe:
-        var = var.replace(swap, safe[swap])
+        var = var.replace(swap, varsafe[swap])
 
     return var
 
@@ -24,7 +24,7 @@ def cut_to_string(cut):
     """
 
     for swap in varsafe:
-        cut = cut.replace(swap, safe[swap])
+        cut = cut.replace(swap, varsafe[swap])
     
     cut = cut.replace(" < ", "<"). replace("<", " < ")
 
