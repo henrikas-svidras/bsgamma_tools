@@ -262,7 +262,7 @@ def calculate_peaky_codes(sig_df, threshold=0.3, plot=False,
     
     return jsdists
 
-def return_generic_signal(dataframe, mode, matching_codes = None, inclusive = False, resonant = False, name="truth"):
+def add_inclusive_signal_truth(dataframe, mode, matching_codes = None, inclusive = False, resonant = False, name="truth"):
 
     if matching_codes is None:
         matching_codes = [0]
