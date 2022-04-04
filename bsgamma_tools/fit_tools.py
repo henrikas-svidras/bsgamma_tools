@@ -168,7 +168,7 @@ class MbcFit:
 
         self.max_mbc = max(self.df_total.Btag_Mbc)
 
-        self.bin_list = bin_list if bin_list else self.bin_list
+        self.bin_list = bin_list if bin_list is not None else self.bin_list
         self.bin_strings = self.create_bins(self.bin_list)
 
         self.ID = random_string()
