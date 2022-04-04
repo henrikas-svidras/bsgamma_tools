@@ -156,7 +156,7 @@ class MbcFit:
     sampler = None
 
     def __init__(self, df_peak, df_combinatorial, df_continuum, obs,
-                 cheb_bin_groups = None, argus_bin_groups = None, weights_col = None,
+                 cheb_bin_groups = None, argus_bin_groups = None, weights_col = None, bin_list = None,
                  lower=None, lowsig=None, c_floaty=False, cheb_floaty=False, minimizer=None):
         self.df_peak = df_peak
         self.df_combinatorial = df_combinatorial
@@ -167,6 +167,8 @@ class MbcFit:
         self.weights_col = weights_col
 
         self.max_mbc = max(self.df_total.Btag_Mbc)
+
+        self.bin_list = bin_list if bin_list else self.bin_list
         self.bin_strings = self.create_bins(self.bin_list)
 
         self.ID = random_string()
