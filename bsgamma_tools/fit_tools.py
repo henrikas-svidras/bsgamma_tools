@@ -110,8 +110,12 @@ def pretty_print_result(result, params=None, quick=False):
     print("creating pretty table")
     x = PrettyTable()
     if not quick:
-        print("getting minos errors")
-        errors = result.errors(method='minuit_minos')
+        if quick=='zfit_errors':
+            print("getting zfit errors")
+            errors = result.errors(method='zfit_errors')
+        else:
+            print("getting minos errors")
+            errors = result.errors(method='minuit_minos')
     else:
         errors = None
         print("skipping minos, because in quick mode")
@@ -566,6 +570,21 @@ class MbcFit:
                 argus_low_error = self.last_result.params[self.collector['yield_argus'][n]]["minuit_minos"]["lower"]
                 cheb_up_error = self.last_result.params[self.collector['yield_cheb'][n]]["minuit_minos"]["upper"]
                 cheb_low_error = self.last_result.params[self.collector['yield_cheb'][n]]["minuit_minos"]["lower"]
+                #pull = (signal_estimate - signal_count)/signal_error
+
+                up_ax.text(0.05, 0.9, 'Crystal Ball: $'+rf'{signal_estimate:.0f}\pm^{{{signal_up_error:.0f}}}_{{{-signal_low_error:.0f}}}'+'$', 
+                           transform=up_ax.transAxes)
+                up_ax.text(0.05, 0.8, 'Argus: $'+rf'{argus_estimate:.0f}\pm^{{{argus_up_error:.0f}}}_{{{-argus_low_error:.0f}}}'+'$', 
+                           transform=up_ax.transAxes)
+                up_ax.text(0.05, 0.7, 'Chebyshev: $'+rf'{cheb_estimate:.0f}\pm^{{{cheb_up_error:.0f}}}_{{{-cheb_low_error:.0f}}}'+'$', 
+                           transform=up_ax.transAxes)
+            elif "zfit_errors" in self.last_result.params[self.collector['yield_signal'][n]]:
+                signal_up_error = self.last_result.params[self.collector['yield_signal'][n]]["zfit_errors"]["upper"]
+                signal_low_error = self.last_result.params[self.collector['yield_signal'][n]]["zfit_errors"]["lower"]
+                argus_up_error = self.last_result.params[self.collector['yield_argus'][n]]["zfit_errors"]["upper"]
+                argus_low_error = self.last_result.params[self.collector['yield_argus'][n]]["zfit_errors"]["lower"]
+                cheb_up_error = self.last_result.params[self.collector['yield_cheb'][n]]["zfit_errors"]["upper"]
+                cheb_low_error = self.last_result.params[self.collector['yield_cheb'][n]]["zfit_errors"]["lower"]
                 #pull = (signal_estimate - signal_count)/signal_error
 
                 up_ax.text(0.05, 0.9, 'Crystal Ball: $'+rf'{signal_estimate:.0f}\pm^{{{signal_up_error:.0f}}}_{{{-signal_low_error:.0f}}}'+'$', 
