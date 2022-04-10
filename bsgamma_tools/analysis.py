@@ -32,7 +32,7 @@ def calculate_bounds(data, z_thresh=3.5):
     return (max(median - const, min(data)), min(median + const, max(data)))
 
 def ratio_error(a,b):
-    return np.sqrt(a/b**2 + (a**2/b**3))
+    return a/b * np.sqrt(1/a + 1/b)
 
 def ratio_to_signal(pddf_list, xname='',
                     label_list = None,
