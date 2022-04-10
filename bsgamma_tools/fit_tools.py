@@ -82,6 +82,8 @@ def plot_model(model, data, nbins=50, scale=1, as_bp = False,plot_data=True, add
             ax.text(0.1,0.8,f"$p={pval:.3f}$",transform=ax.transAxes)
 
         pull_limit = np.nanquantile(np.abs(pulls[n>0]),0.99)
+        if pull_limit == np.nan or pull_limit == np.inf:
+            pull_limit = 1
 
         ax_pull.set_ylim(-pull_limit*1.1, pull_limit*1.1)
 
