@@ -50,10 +50,11 @@ class VariableHybridModel:
 
     fpluszero = ufloat(1.058, 0.024)
 
-    inclusive_BR = ufloat(3.49, 0.19) * 1e-4
+    inclusive_BRBplus = ufloat(3.49, 0.19) * 1e-4
+    inclusive_BRBzero = ufloat(3.49, 0.19) * 1e-4
 
-    BplusBR = inclusive_BR * tauBpluszero * (1 + fpluszero) / (1 + tauBpluszero * fpluszero)
-    BzeroBR = inclusive_BR *                (1 + fpluszero) / (1 + tauBpluszero * fpluszero)
+    BplusBR = inclusive_BRBplus * tauBpluszero * (1 + fpluszero) / (1 + tauBpluszero * fpluszero)
+    BzeroBR = inclusive_BRBzero *                (1 + fpluszero) / (1 + tauBpluszero * fpluszero)
 
 #     exclB0_BR = np.sum(list(scales_zero.values()))
 #     exclBp_BR = np.sum(list(scales_plus.values()))
