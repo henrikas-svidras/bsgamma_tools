@@ -7,6 +7,7 @@ import b2plot as bp
 
 from scipy.spatial.distance import jensenshannon
 import yaml
+import dill
 
 from bsgamma_tools.helpers import pdg_to_name
 from bsgamma_tools.fit_tools import SWeightFit, MbcFit
@@ -345,9 +346,15 @@ class EGammaSpectrum:
         #assert isinstance(binfit, MbcFit), "if building from binned fit, please give a fitted MbcFit"
 
         self.n_gamma = np.array([count.numpy() for count in binfit.collector['yield_signal']])
-        e_u = np.array([binfit.last_result.params[v]['minuit_minos']['upper'] for v in binfit.collector['yield_signal']])
-        e_l = np.array([binfit.last_result.params[v]['minuit_minos']['lower'] for v in binfit.collector['yield_signal']])
+        if "minuit_minos" in binfit.last_result.params[binfit.collector["yield_signal"][0]]:
+            e_u = np.array([binfit.last_result.params[v]['minuit_minos']['upper'] for v in binfit.collector['yield_signal']])
+            e_l = np.array([binfit.last_result.params[v]['minuit_minos']['lower'] for v in binfit.collector['yield_signal']])
+        else:
+            e_u = np.array([binfit.last_result.params[v]['approx']['error'] for v in binfit.collector['yield_signal']])
+            e_l = np.array([binfit.last_result.params[v]['approx']['error'] for v in binfit.collector['yield_signal']])
+
         self.fit_uncertainty = (e_l, e_u)
+
 
         self.binned = True
         self.built = True
@@ -453,7 +460,7 @@ class EGammaSpectrum:
                 new_uncertainty_l = self.fit_uncertainty[0] * other
                 new_uncertainty = (new_uncertainty_l, new_uncertainty_u)
             else:
-                new_uncertainty = np.sqrt(self.fit_uncertainty**2 * other)
+                new_uncertainty = self.fit_uncertainty * other
 
             new_spectrum = EGammaSpectrum(bins=self.bins)
             new_spectrum.from_values(new_value, new_uncertainty)
@@ -468,3 +475,12 @@ class EGammaSpectrum:
         if isinstance(other, list) or isinstance(other, np.array):
             print('subtracting a list of entries')
             raise NotImplementedError
+
+    def save(self, filename):
+        with open(filename, 'wb') as handle:
+            dill.dump(self, handle)
+
+    def load(self, filename):
+        with open(filename, 'rb') as handle:
+            self = dill.load(handle)
+        return self
