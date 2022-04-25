@@ -137,7 +137,7 @@ def make_datamc_ratio_plot(numerator, denominator, var,
     if not text is None:
         ax[0].text(textplace,1.02, text, transform=ax[0].transAxes)
 
-    discrepancy = np.sum(n_off/n_cont * (n_off+n_cont)/np.sum(n_off+n_cont))
+    discrepancy = np.sum(np.nan_to_num(n_off/n_cont * (n_off+n_cont)/np.sum(n_off+n_cont), neginf=1, posinf=1))
     #discrepancy = scipy.spatial.distance.jensenshannon(n_off, n_cont)
     #discrepancy = np.average(n_off/n_cont)
 
