@@ -283,7 +283,11 @@ def add_inclusive_signal_truth(dataframe, mode, matching_codes = None, inclusive
     dataframe.loc[(dataframe['Bsig_d0_mcpdg'].isin(codes)) & \
                   (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                   (dataframe['isSigSideCorrect'] == 1), name] = 1
-    
+
+    dataframe.loc[~((dataframe['Bsig_d0_mcpdg'].isin(codes)) & \
+                  (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
+                  (dataframe['isSigSideCorrect'] == 1)), name] = 0
+
     return dataframe
 
 #################
