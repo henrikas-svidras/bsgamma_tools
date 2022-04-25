@@ -101,11 +101,11 @@ def make_datamc_ratio_plot(numerator, denominator, var,
     uncertainty = np.sqrt((np.sum(uncertainty_sources**2, axis=0)))
 
     n_off, _, _, _ = bp.errorhist(numerator[var], 
-                                  bins = bins, ax=ax[0], label=data_label
+                                  bins = bins, ax=ax[0], label=data_label)
     ########
 
-    ax[0].bar(centers,  
-              uncertainty*2, 
+    ax[0].bar(centers,
+              uncertainty*2,
               bottom=n_cont-uncertainty,
               width=widths, color='gray',
               alpha=0.5, label="Uncrtnt. band")
