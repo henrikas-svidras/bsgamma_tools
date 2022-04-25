@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import b2plot as bp
 
 def equal_binned_colz(values, x_edges, y_edges,
                       nbins=20, nlabels=20, 
