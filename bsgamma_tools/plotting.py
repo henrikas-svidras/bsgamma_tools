@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import b2plot as bp
 
+from .constants import var_to_string
+
 def equal_binned_colz(values, x_edges, y_edges,
                       nbins=20, nlabels=20, 
                       x_formatter="%.2g",
