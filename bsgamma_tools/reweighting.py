@@ -50,22 +50,6 @@ class VariableHybridModel:
 
     fpluszero = ufloat(1.058, 0.024)
 
-    inclusive_BRBplus = ufloat(3.49, 0.19) * 1e-4
-    inclusive_BRBzero = ufloat(3.49, 0.19) * 1e-4
-
-    BplusBR = inclusive_BRBplus * tauBpluszero * (1 + fpluszero) / (1 + tauBpluszero * fpluszero)
-    BzeroBR = inclusive_BRBzero *                (1 + fpluszero) / (1 + tauBpluszero * fpluszero)
-
-#     exclB0_BR = np.sum(list(scales_zero.values()))
-#     exclBp_BR = np.sum(list(scales_plus.values()))
-
-    N_inclusive_ch = nominal_value(N_BB_tot   * BplusBR) 
-    N_inclusive_md = nominal_value(N_BB_tot   * BzeroBR)
-
-    N_inclusive_ch_up   = nominal_value(N_BB_tot * (BplusBR.nominal_value + BplusBR.std_dev))
-    N_inclusive_ch_down = nominal_value(N_BB_tot * (BplusBR.nominal_value - BplusBR.std_dev))
-    N_inclusive_md_up   = nominal_value(N_BB_tot * (BzeroBR.nominal_value + BzeroBR.std_dev))
-    N_inclusive_md_down = nominal_value(N_BB_tot * (BzeroBR.nominal_value - BzeroBR.std_dev))
 
     xsu = [30353,-30353]
     xsd = [30343,-30343]
@@ -77,6 +61,22 @@ class VariableHybridModel:
     xsz_codes = [ 30343, -30343,
                    20313,  10313,  313,  113,  30313,  315,  223,
                   -20313, -10313, -313, -113, -30313, -315, -223,]
+
+    def __init__(self, b_plus_br=None, b_zero_br=None):
+        self.inclusive_BRBplus = b_plus_br if b_plus_br is not None else ufloat(3.49, 0.19) * 1e-4
+        self.inclusive_BRBzero = b_zero_br if b_zero_br is not None else ufloat(3.49, 0.19) * 1e-4
+
+        self.BplusBR = self.inclusive_BRBplus * self.tauBpluszero * (1 + self.fpluszero) / (1 + self.tauBpluszero * self.fpluszero)
+        self.BzeroBR = self.inclusive_BRBzero *                     (1 + self.fpluszero) / (1 + self.tauBpluszero * self.fpluszero)
+
+        self.N_inclusive_ch = nominal_value(self.N_BB_tot   * self.BplusBR) 
+        self.N_inclusive_md = nominal_value(self.N_BB_tot   * self.BzeroBR)
+
+        self.N_inclusive_ch_up   = nominal_value(self.N_BB_tot * (self.BplusBR.nominal_value + self.BplusBR.std_dev))
+        self.N_inclusive_ch_down = nominal_value(self.N_BB_tot * (self.BplusBR.nominal_value - self.BplusBR.std_dev))
+        self.N_inclusive_md_up   = nominal_value(self.N_BB_tot * (self.BzeroBR.nominal_value + self.BzeroBR.std_dev))
+        self.N_inclusive_md_down = nominal_value(self.N_BB_tot * (self.BzeroBR.nominal_value - self.BzeroBR.std_dev))
+
 
     def up_weight(self, ufloat_number):
         return (ufloat_number.nominal_value + ufloat_number.std_dev) / ufloat_number.nominal_value
