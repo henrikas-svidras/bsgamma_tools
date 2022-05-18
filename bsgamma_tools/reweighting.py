@@ -148,7 +148,7 @@ class VariableHybridModel:
             deff.loc[:,'br_weight'] = self.N_inclusive_md / len(deff)
             self.mixed_variations.append(deff)
 
-    def register_mc_datasets(self, dataframe, charged, matching_codes = None):
+    def register_mc_datasets(self, dataframe, charged, matching_codes = None, resonant_codes = None):
 
         dataframe.loc[:,'hweight'] = 1.
         dataframe.loc[:,'up_weight'] = 1.
@@ -156,23 +156,32 @@ class VariableHybridModel:
         dataframe.loc[:,'br_weight'] = 1.
         dataframe.loc[:,'rel_weight'] = 1.
 
+
         if matching_codes is None:
             matching_codes = [0]
 
         if charged:
+            resonant_codes = self.xsp_codes[2:] if resonant_codes is None else resonant_codes
+            self.resonant_codes_mc_plus = resonant_codes
+            suppressed_codes = list(set(self.xsp_codes[2:])-set(resonant_codes))
             self.charged_inclusive_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsp_codes[:2])) & \
                                                   (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                   (dataframe['isSigSideCorrect'] == 1)]
-            self.charged_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsp_codes[2:])) & \
+            self.charged_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(resonant_codes)) & \
                                                   (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                   (dataframe['isSigSideCorrect'] == 1)]
+            self.charged_resonance_mc.loc[self.charged_resonance_mc.Btag_mcErrors.isin(suppressed_codes), 'br_weight'] = 0
         else:
+            resonant_codes = self.xsz_codes[2:] if resonant_codes is None else resonant_codes
+            self.resonant_codes_mc_zero = resonant_codes
+            suppressed_codes = list(set(self.xsz_codes[2:])-set(resonant_codes))
             self.mixed_inclusive_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsz_codes[:2])) & \
                                                 (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                 (dataframe['isSigSideCorrect'] == 1)]
-            self.mixed_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsz_codes[2:])) & \
+            self.mixed_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(resonant_codes)) & \
                                                 (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
-                                                (dataframe['isSigSideCorrect'] == 1)]    
+                                                (dataframe['isSigSideCorrect'] == 1)]
+            self.mixed_resonance_mc.loc[self.mixed_resonance_mc.Btag_mcErrors.isin(suppressed_codes), 'br_weight'] = 0
 
 
 
@@ -351,30 +360,30 @@ class VariableHybridModel:
 
         mixed_reweights[np.isinf(mixed_reweights)] = 0
         mixed_reweights[np.isnan(mixed_reweights)] = 1
-        
+
         self.charged_reweights = charged_reweights
         self.mixed_reweights = mixed_reweights
         self.reweight_bins = reweight_bins
-    
+
     def lock(self):
         self.is_locked = True
-        
+
         self.charged_resonance_all = pd.concat(self.charged_resonances.values())
         self.charged_resonance_all.loc[:,'rel_weight'] = 1
-        
+
         self.mixed_resonance_all = pd.concat(self.mixed_resonances.values())
         self.mixed_resonance_all.loc[:,'rel_weight'] = 1
-        
+
         self.charged_leftover = nominal_value(3.49e-4 - np.sum(list(self.charged_scales.values())))
         self.mixed_leftover = nominal_value(3.49e-4 - np.sum(list(self.mixed_scales.values())))
 
         self.charged_inclusive.loc[:,'rel_weight']  = self.charged_leftover / 3.49e-4
         self.mixed_inclusive.loc[:,'rel_weight']    = self.mixed_leftover / 3.49e-4
-        
+
         self.charged_inclusive_default.loc[:,'rel_weight']  = self.charged_leftover / 3.49e-4
         self.mixed_inclusive_default.loc[:,'rel_weight']  = self.mixed_leftover / 3.49e-4
-        
-    
+
+
     def lock_mc(self):
         self.mixed_inclusive_mc.loc[:,"hweight"] = self.mixed_weights[ -1 + np.digitize(self.mixed_inclusive_mc.gamma_mcEB, self.mixed_hybrid_bins)]
         self.charged_inclusive_mc.loc[:,"hweight"] = self.charged_weights[ -1 + np.digitize(self.charged_inclusive_mc.gamma_mcEB, self.charged_hybrid_bins)]
@@ -423,7 +432,7 @@ class VariableHybridModel:
             self.mixed_resonance_mc.loc[:,f'{mode}-down'] = 1
             self.mixed_inclusive_mc.loc[:,f'{mode}-up'] = self.mixed_weights[ -1 + np.digitize(self.mixed_inclusive_mc.gamma_mcEB, self.mixed_hybrid_bins)]
             self.mixed_inclusive_mc.loc[:,f'{mode}-down'] = self.mixed_weights[ -1 + np.digitize(self.mixed_inclusive_mc.gamma_mcEB, self.mixed_hybrid_bins)]
-        
+
         for mode, val in self.mixed_scales.items():
             print(f'Adding weights for {mode}')
             pdgcode = int(particle.Particle.from_string(mode).pdgid)
@@ -441,9 +450,9 @@ class VariableHybridModel:
             self.charged_resonance_mc.loc[:,f'{mode}-down'] = 1
             self.charged_inclusive_mc.loc[:,f'{mode}-up'] = self.charged_weights[ -1 + np.digitize(self.charged_inclusive_mc.gamma_mcEB, self.charged_hybrid_bins)]
             self.charged_inclusive_mc.loc[:,f'{mode}-down'] = self.charged_weights[ -1 + np.digitize(self.charged_inclusive_mc.gamma_mcEB, self.charged_hybrid_bins)]
-        
+
         for n, (ch, md) in enumerate(zip(self.charged_variations, self.mixed_variations)):
-            
+
 
             self.charged_inclusive_mc.loc[:,f'par_weight_{n}'] = self.par_variation_hweights[f'charged_var_{n}'][-1 +np.digitize(self.charged_inclusive_mc.gamma_mcEB, bins=self.charged_hybrid_bins)]
             self.mixed_inclusive_mc.loc[:,f'par_weight_{n}'] = self.par_variation_hweights[f'mixed_var_{n}'][-1 +np.digitize(self.mixed_inclusive_mc.gamma_mcEB, bins=self.mixed_hybrid_bins)]
@@ -474,21 +483,21 @@ class VariableHybridModel:
 
 
     def draw_unweighted_evtgen(self, reweighted=False):
-        
+
         bins = np.linspace(1.4,2.8,50)
         bin_width = bins[1]-bins[0]
         fig, non_flat_axs = plt.subplots(1,2, figsize=(18,6))
         axs = non_flat_axs.flatten()
-        
+ 
         # B plus mode
-        
+
         ax = axs[0]
-        
+
         if reweighted:
             signal = self.charged_inclusive
         else:
             signal = self.charged_inclusive_default
-        
+
         draw_list = [df.g_EB for df in self.charged_resonances.values()] + [signal.g_EB]
         name_list = self.charged_names + ['Xs gamma']
 
@@ -503,11 +512,11 @@ class VariableHybridModel:
                 bins=bins, ax=ax, 
                 label='Inclusive signal model', scale=3.49e-4, 
                 ls='--', color='orange', lw=2)
-        
+
         # B zero mode
-        
+
         ax = axs[1]
-        
+
         if reweighted:
             signal = self.mixed_inclusive
         else:
@@ -571,25 +580,25 @@ class VariableHybridModel:
         plt.legend(loc='upper left')
 
     def draw_reweighted_mc(self, drawbins, var='gamma_mcEB'):
-        
+
         fig, non_flat_axs = plt.subplots(1,2, figsize=(18,6))
         axs = non_flat_axs.flatten()
-        
+
         ax=axs[0]
-        
+
         reweights = self.charged_reweights[-1 + np.digitize(self.charged_inclusive_mc[var], self.reweight_bins)]
-        
+
         bp.hist(self.charged_inclusive.g_EB, bins=drawbins, label='generated', density=True, lw=2, ax=ax)
         bp.hist(self.charged_inclusive_mc[var], bins=drawbins, label='generic', density=True, lw=2, ax=ax)
         bp.hist(self.charged_inclusive_mc[var], bins=drawbins, label='reweighted', ls=':', 
                 weights=self.charged_inclusive_mc['reweight'], density=True, lw=5, ax=ax)
 
         make_gamma_axes(ax=ax,additional=' generated')
-        
+
         ax=axs[1]
-        
+
         #reweights = self.mixed_reweights[-1 + np.digitize(self.mixed_inclusive_mc[var], self.reweight_bins)]
-        
+
         bp.hist(self.mixed_inclusive.g_EB, bins=drawbins, label='generated', density=True, lw=2, ax=ax)
         bp.hist(self.mixed_inclusive_mc[var], bins=drawbins, label='generic', density=True, lw=2, ax=ax)
         bp.hist(self.mixed_inclusive_mc[var], bins=drawbins, label='reweighted', ls=':', 
@@ -599,26 +608,26 @@ class VariableHybridModel:
 
 
         plt.legend(loc='upper left')
-    
+
     def draw_hybrid_weighted(self,
                         drawbins,
                         var="g_EB", 
                         save=None,
                         include_non_hweighted=True,
                         ):
-    
+
         fig, axs = plt.subplots(1,3, figsize=(27,6))
         bin_width = drawbins[1]-drawbins[0]
-        
+
         for bin in self.charged_hybrid_bins:
             axs[0].axvline(bin, ls='--', lw='1',color='black')
-        
+ 
         for bin in self.mixed_hybrid_bins:
             axs[1].axvline(bin, ls='--', lw='1',color='black')
-        
+
         #### Bp
         ax = axs[0]
-        
+
         hybrid_weights_inclusive  = self.charged_inclusive['hweight'] * \
                                     self.charged_inclusive['br_weight'] \
 
