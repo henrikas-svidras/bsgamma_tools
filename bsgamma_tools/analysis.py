@@ -141,10 +141,13 @@ def stacked_background(df, by, max_by=10, reverse = True, colors = None, pdgise=
     pdg_codes = df[by].value_counts().keys()
     if len(pdg_codes)<max_by:
         max_by=len(pdg_codes)+1
-    if pdgise:
+    if isinstance(pdgise, bool) and pdgise:
         pdg_names = [legend_suffix+pdg_to_name(i,True) for i in pdg_codes[:max_by-1]]
     else:
-        pdg_names = [legend_suffix+f'{i}' for i in pdg_codes[:max_by-1]]
+        try:
+            pdg_names = [legend_suffix+pdgise(int(i)) for i in pdg_codes[:max_by-1]]
+        except:
+            pdg_names = [legend_suffix+f'{i}' for i in pdg_codes[:max_by-1]]
 
     top = pdg_codes[:max_by-1]
 
@@ -283,10 +286,8 @@ def add_inclusive_signal_truth(dataframe, mode, matching_codes = None, inclusive
     dataframe.loc[(dataframe['Bsig_d0_mcpdg'].isin(codes)) & \
                   (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                   (dataframe['isSigSideCorrect'] == 1), name] = 1
-
-    dataframe.loc[~((dataframe['Bsig_d0_mcpdg'].isin(codes)) & \
-                  (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
-                  (dataframe['isSigSideCorrect'] == 1)), name] = 0
+    
+    dataframe[name].fillna(0, inplace=True)
 
     return dataframe
 
@@ -317,8 +318,8 @@ class EGammaSpectrum:
 
     def from_sfit(self, sfit):
         assert not self.built, "Spectrum is already built. Create a new one!"
-        print(type(sfit))
-        print(SWeightFit)
+        #print(type(sfit))
+        #print(SWeightFit)
         assert isinstance(sfit, SWeightFit), "if building from sweights, please give a fitted SWeightFit"
 
         self.weights = compute_sweights(sfit.full_fit, sfit.last_fit_data)
@@ -354,8 +355,8 @@ class EGammaSpectrum:
             e_u = np.array([binfit.last_result.params[v]['minuit_minos']['upper'] for v in binfit.collector['yield_signal']])
             e_l = np.array([binfit.last_result.params[v]['minuit_minos']['lower'] for v in binfit.collector['yield_signal']])
         else:
-            e_u = np.array([binfit.last_result.params[v]['approx']['error'] for v in binfit.collector['yield_signal']])
-            e_l = np.array([binfit.last_result.params[v]['approx']['error'] for v in binfit.collector['yield_signal']])
+            e_u = np.array([binfit.last_result.params[v]['quick_error']['error'] for v in binfit.collector['yield_signal']])
+            e_l = np.array([binfit.last_result.params[v]['quick_error']['error'] for v in binfit.collector['yield_signal']])
 
         self.fit_uncertainty = (e_l, e_u)
 
@@ -364,7 +365,7 @@ class EGammaSpectrum:
         self.built = True
         self.subtracted = False
         self.asymmetric = True
-    
+
     def from_values(self, values, uncertainties):
         self.n_gamma = np.array(values)
         self.fit_uncertainty = np.array(uncertainties)
@@ -383,14 +384,16 @@ class EGammaSpectrum:
         if self.binned or self.custom:
             self.plot_binned_spectrum(target)
 
-    def plot_binned_spectrum(self, target=None):
+    def plot_binned_spectrum(self, target=None, weights=None):
 
         fig, ax = plt.subplots(1, 1)
 
-        ax.errorbar(self.bin_centers, self.n_gamma, yerr=np.array(self.fit_uncertainty), fmt='k.')
+        weights = weights
+
+        ax.errorbar(self.bin_centers, self.n_gamma, yerr=np.array(np.abs(self.fit_uncertainty)), fmt='k.')
 
         if not target is None:
-            ax.hist(target, bins=self.bins, histtype="step", label="target histogram", color='r', lw=1.5)
+            ax.hist(target, bins=self.bins, histtype="step", label="target histogram", color='r', lw=1.5, weights=weights)
         ax.set_xlabel("$E^B_{\gamma}$, GeV")
         ax.set_ylabel("Crystal Ball yield")
         ax.set_xlim(1.4, 3.5)
@@ -421,8 +424,6 @@ class EGammaSpectrum:
         axs[1].legend(fontsize=15);
 
     def __sub__(self, other):
-        print(type(other))
-        print(type(self))
         if isinstance(other, float) or isinstance(other, int):
             print('subtracting constant value')
             raise NotImplementedError
@@ -456,7 +457,7 @@ class EGammaSpectrum:
 
     def __mul__(self, other):
         if isinstance(other, float) or isinstance(other, int):
-            print('subtracting constant value')
+            print('mulling constant value')
             new_value = np.array(self.n_gamma) * other
 
             if self.asymmetric:
@@ -474,10 +475,10 @@ class EGammaSpectrum:
             return new_spectrum
 
         if isinstance(other, EGammaSpectrum):
-            print('subtracting spectrum')
+            print('mulling spectrum')
             raise NotImplementedError
         if isinstance(other, list) or isinstance(other, np.array):
-            print('subtracting a list of entries')
+            print('mulling a list of entries')
             raise NotImplementedError
 
     def save(self, filename):

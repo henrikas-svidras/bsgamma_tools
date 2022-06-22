@@ -148,7 +148,7 @@ class VariableHybridModel:
             deff.loc[:,'br_weight'] = self.N_inclusive_md / len(deff)
             self.mixed_variations.append(deff)
 
-    def register_mc_datasets(self, dataframe, charged, matching_codes = None, resonant_codes = None):
+    def register_mc_datasets(self, dataframe, charged, matching_codes = None, resonant_codes = None, leftover=None):
 
         dataframe.loc[:,'hweight'] = 1.
         dataframe.loc[:,'up_weight'] = 1.
@@ -170,7 +170,14 @@ class VariableHybridModel:
             self.charged_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(resonant_codes)) & \
                                                   (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                   (dataframe['isSigSideCorrect'] == 1)]
-            self.charged_resonance_mc.loc[self.charged_resonance_mc.Btag_mcErrors.isin(suppressed_codes), 'br_weight'] = 0
+            self.charged_resonance_mc_full = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsp_codes[2:])) & \
+                                                  (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
+                                                  (dataframe['isSigSideCorrect'] == 1)]
+            #self.charged_resonance_mc.loc[self.charged_resonance_mc.Bsig_d0_mcpdg.isin(suppressed_codes), 'br_weight'] = 0
+            #self.charged_inclusive_mc.loc[:, 'br_weight'] = 3.49e-4 / leftover
+            #self.charged_resonance_mc.loc[self.charged_resonance_mc.Bsig_d0_mcpdg.isin(resonant_codes), 'br_weight'] = 3.49e-4 / leftover
+            #if leftover is not None:
+            #    self.charged_inclusive_mc["br_weight"] = self.charged_leftover/leftover
         else:
             resonant_codes = self.xsz_codes[2:] if resonant_codes is None else resonant_codes
             self.resonant_codes_mc_zero = resonant_codes
@@ -181,7 +188,14 @@ class VariableHybridModel:
             self.mixed_resonance_mc = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(resonant_codes)) & \
                                                 (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
                                                 (dataframe['isSigSideCorrect'] == 1)]
-            self.mixed_resonance_mc.loc[self.mixed_resonance_mc.Btag_mcErrors.isin(suppressed_codes), 'br_weight'] = 0
+            self.mixed_resonance_mc_full = dataframe[(dataframe['Bsig_d0_mcpdg'].isin(self.xsz_codes[2:])) & \
+                                                (dataframe['Btag_mcErrors'].isin(matching_codes)) & \
+                                                (dataframe['isSigSideCorrect'] == 1)]
+            #self.mixed_resonance_mc.loc[self.mixed_resonance_mc.Bsig_d0_mcpdg.isin(suppressed_codes), 'br_weight'] = 0
+            #self.mixed_inclusive_mc.loc[:, 'br_weight'] = 3.49e-4 / leftover
+            #self.mixed_resonance_mc.loc[self.mixed_resonance_mc.Bsig_d0_mcpdg.isin(resonant_codes), 'br_weight'] = 3.49e-4 / leftover
+            #if leftover is not None:
+            #    self.mixed_inclusive_mc["br_weight"] = self.mixed_leftover/leftover
 
 
 
@@ -384,7 +398,7 @@ class VariableHybridModel:
         self.mixed_inclusive_default.loc[:,'rel_weight']  = self.mixed_leftover / 3.49e-4
 
 
-    def lock_mc(self):
+    def lock_mc(self, charged_leftover=None, mixed_leftover=None):
         self.mixed_inclusive_mc.loc[:,"hweight"] = self.mixed_weights[ -1 + np.digitize(self.mixed_inclusive_mc.gamma_mcEB, self.mixed_hybrid_bins)]
         self.charged_inclusive_mc.loc[:,"hweight"] = self.charged_weights[ -1 + np.digitize(self.charged_inclusive_mc.gamma_mcEB, self.charged_hybrid_bins)]
 
@@ -409,11 +423,17 @@ class VariableHybridModel:
         self.mixed_resonance_mc.loc[:, "reweight"] = 1
         self.charged_resonance_mc.loc[:, "reweight"] = 1
 
-        self.charged_inclusive_mc.loc[:,"scaling"] = 3.49e-4 / self.charged_leftover
-        self.mixed_inclusive_mc.loc[:,"scaling"] = 3.49e-4 / self.mixed_leftover
+        self.charged_inclusive_mc.loc[:,"scaling"] = 3.49e-4 / self.charged_leftover if charged_leftover is None else 3.49e-4/charged_leftover
+        self.mixed_inclusive_mc.loc[:,"scaling"] = 3.49e-4 / self.mixed_leftover if mixed_leftover is None else 3.49e-4/mixed_leftover
 
         self.mixed_resonance_mc.loc[:,"scaling"] = 1
         self.charged_resonance_mc.loc[:,"scaling"] = 1
+
+        self.charged_inclusive_mc.loc[:,"non_hweighted_weight"] = self.charged_leftover / charged_leftover if charged_leftover is not None else 1
+        self.mixed_inclusive_mc.loc[:,"non_hweighted_weight"] = self.mixed_leftover / mixed_leftover if mixed_leftover is not None else 1
+
+        self.mixed_resonance_mc.loc[:,"non_hweighted_weight"] = 1
+        self.charged_resonance_mc.loc[:,"non_hweighted_weight"] = 1
 
         for mode, val in self.charged_scales.items():
             print(f'Adding weights for {mode}')
@@ -808,7 +828,7 @@ class VariableHybridModel:
         if include_non_hweighted:
             n_n, _, _ = bp.hist(charged_total[var],
                                 bins=drawbins,
-                                weights=charged_total['rel_weight']*charged_total['br_weight'],
+                                weights=charged_total['rel_weight']*charged_total['br_weight']*charged_total["non_hweighted_weight"],
                                 label='non-reweighted',
                                 ls='--', color='blue', lw=2,
                                 ax=ax)
@@ -823,7 +843,7 @@ class VariableHybridModel:
                            ax=ax)
         #### B0
         ax = axs[1]
-        
+
         hybrid_weights_inclusive  = self.mixed_inclusive_mc['hweight']   * \
                                     self.mixed_inclusive_mc['br_weight'] * \
                                     self.mixed_inclusive_mc['reweight']  * \
@@ -857,7 +877,7 @@ class VariableHybridModel:
             n_n, _, _ = bp.hist(mixed_total[var],
                                 bins=drawbins,
                                 weights=mixed_total['rel_weight']*\
-                                        mixed_total['br_weight'],
+                                        mixed_total['br_weight']*mixed_total["non_hweighted_weight"],
                                 label='non-reweighted',
                                 ls='--', color='blue', lw=2,
                                 ax=ax)
@@ -898,7 +918,7 @@ class VariableHybridModel:
         if include_non_hweighted:
             n_n, _, _ = bp.hist(total_total[var],
                                 bins=drawbins,
-                                weights=total_total['rel_weight']*total_total['br_weight'],
+                                weights=total_total['rel_weight']*total_total['br_weight']*total_total["non_hweighted_weight"],
                                 label='non-reweighted',
                                 ls='--', color='blue', lw=2,
                                 ax=ax)
@@ -960,7 +980,7 @@ class VariableHybridModel:
             errors_down = n_down - self.n_c
             cov_down = np.outer(errors_down, errors_down)
 
-            cov = (cov_up + cov_down) / 2
+            cov = (cov_up + cov_down) / 4
 
             self.cov_mtx[key] = cov
 
@@ -969,6 +989,7 @@ class VariableHybridModel:
         summed_mtx = 0
         for mtx in self.cov_mtx.values():
             summed_mtx +=mtx
+        self.cov_mtx_resBR = summed_mtx
         diag = summed_mtx.diagonal()
         self.error_res = np.sqrt(diag) 
 
@@ -1004,7 +1025,9 @@ class VariableHybridModel:
         errors_down = n_down - self.n_c
         cov_down = np.outer(errors_down, errors_down)
 
-        cov = (cov_up + cov_down) / 2
+        cov = (cov_up + cov_down) / 4
+
+        self.cov_mtx_inclBR = cov
 
         diag = cov.diagonal()
         self.error_inc = np.sqrt(diag)
@@ -1039,6 +1062,7 @@ class VariableHybridModel:
         summed_mtx_var = 0
         for mtx in self.cov_mtx_var.values():
             summed_mtx_var +=mtx
+        self.cov_mtx_KNpar = summed_mtx_var
         diag = summed_mtx_var.diagonal()
         self.error_var = np.sqrt(diag)
 

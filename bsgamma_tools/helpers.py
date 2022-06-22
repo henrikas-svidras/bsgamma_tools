@@ -4,13 +4,59 @@ import random
 import string
 import warnings
 
-def pdg_to_name(input_id, latex=False):
+def pdg_to_name(input_id, latex=False, latex_unready=False):
     """
     Transforms a pdg id to a name. Can return a Latex name.
 
     """
 
-    from particle import Particle
+    safe = {
+        '30353':'Xsu',
+        '-30353':'anti-Xsu',
+        '30343':'Xsd',
+        '-30343':'anti-Xsd',
+        '43':"Xu0",
+        '-43':"Xu0",
+        '44':"Xu+",
+        '-44':"Xu-",
+        "20413":"D'_1+",
+        "-20413":"D'_1-",
+        "-->":"-->",
+        "->":"-->"
+    }
+
+    if np.isnan(input_id):
+        return 'nan'
+    else:
+        input_id = int(input_id)
+        if str(input_id) in safe.keys():
+            return safe[str(input_id)]
+        try:
+            part = Particle.from_pdgid(input_id)
+            if latex:
+                return f'${part.latex_name}$'
+            elif latex_unready:
+                return part.latex_name
+            else:
+                return part.evtgen_name # better than name --- charge independent (?)!
+            #safe[str(input_id)] = part.name
+        except:
+            try:
+                part = Particle.from_pdgid(-1*input_id)
+                if latex:
+                    return f'${part.latex_name}$'
+                elif latex_unready:
+                    return part.latex_name
+                else:
+                    return part.evtgen_name # better than name --- charge independent (?)!
+            except:
+                return f'Unknown{input_id}'
+
+def pdg_to_name_old(input_id, latex=False):
+    """
+    Transforms a pdg id to a name. Can return a Latex name.
+
+    """
 
     safe = {
         '30353':'Xsu',
@@ -30,7 +76,7 @@ def pdg_to_name(input_id, latex=False):
             if latex:
                 return f'${part.latex_name}$'
             else:
-                return part.name
+                return part.name # better than name --- charge independent (?)!
             #safe[str(input_id)] = part.name
         except:
             return f'Unknown{input_id}'

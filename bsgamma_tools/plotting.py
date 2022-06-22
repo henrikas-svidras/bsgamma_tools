@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import b2plot as bp
 
+from uncertainties.unumpy import uarray
+from uncertainties.unumpy import nominal_values as nvs
+from uncertainties.unumpy import std_devs as sds
+
 from .constants import var_to_string
 
 def equal_binned_colz(values, x_edges, y_edges,
@@ -55,12 +59,126 @@ def equal_bins(x, nbin):
                      np.sort(x))
 
 def make_datamc_ratio_plot(numerator, denominator, var,
+                           weight_col = None,
+                           weight_err_col = None,
+                           lumi_weight = None, lumi=None,
+                           bins=None,
+                           text=None, textplace=0.7,
+                           axes=None, density=False,
+                           data_label="data"):
+
+    if bins is None:
+        bins = np.array([1.4,1.6,1.8,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,5.0])
+    centers = 0.5*(bins[:-1]+bins[1:])
+    widths = -(bins[:-1]-bins[1:])
+
+    if axes is not None:
+        ax = axes
+    else:
+        fig, ax = plt.subplots(2,1,gridspec_kw={'height_ratios': [1.618**2,1], 'hspace':0.07}, sharex=True,)
+
+    if len(numerator) == 0 and len(denominator)==0:
+        ax[0].text(0.2,0.4, "NO DATA", transform=ax[0].transAxes)
+        if not text is None:
+            ax[0].text(textplace,1.02, text, transform=ax[0].transAxes)
+        return
+
+    #### Calculations
+    n_cont_up, _ = np.histogram(denominator[var], 
+                            bins = bins, density=density,
+                            weights=denominator[lumi_weight]*(denominator[weight_col]+denominator[weight_err_col]))
+    n_cont_down, _ = np.histogram(denominator[var], 
+                            bins = bins, density=density,
+                            weights=denominator[lumi_weight]*(denominator[weight_col]-denominator[weight_err_col]))
+
+    n_cont, _ = np.histogram(denominator[var], 
+                             bins = bins, density=density,
+                             weights=denominator[lumi_weight]*denominator[weight_col])
+
+    stat_uncertainty_sq, _ = np.histogram(denominator[var], 
+                             bins = bins, density=density, 
+                             weights=(denominator[lumi_weight]*denominator[weight_col])**2)
+
+    stat_uncertainty = np.sqrt(stat_uncertainty_sq)
+
+    uncertainty_sources = np.array([
+        stat_uncertainty,
+        0.5*(n_cont_up-n_cont_down),
+    ])
+    
+    if not density:
+        uncertainty = np.sqrt((np.sum(uncertainty_sources**2, axis=0)))
+        n_off, _, _, _ = bp.errorhist(numerator[var], uncertainty_mode="regular",
+                                      bins = bins, ax=ax[0], label=data_label)
+    else:
+        uncertainty = np.zeros(len(bins)-1)
+        n_off, _, _ = bp.hist(numerator[var], density=density,
+                                      bins = bins, ax=ax[0], label=data_label)
+
+    ########
+
+    ax[0].bar(centers,
+              uncertainty*2,
+              bottom=n_cont-uncertainty,
+              width=widths, color='gray',
+              alpha=0.5, label="Uncrtnt. band")
+
+    ax[0].hlines(y = n_cont, xmin = bins[:-1], xmax=bins[1:], color='black', ls='dashed', label="MC")
+
+    data_distribution = uarray(n_off, np.sqrt(n_off))
+    mc_distribution = uarray(n_cont, uncertainty)
+    
+    mc_distribution[mc_distribution==0] = 1e-9
+
+    data_mc_ratio = data_distribution/mc_distribution
+    
+    if not density:
+        up_errors = sds(data_mc_ratio)
+        down_errors = sds(data_mc_ratio)
+    else:
+        up_errors = np.zeros(len(data_mc_ratio))
+        down_errors = np.zeros(len(data_mc_ratio))
+
+
+    #Draw pull distribution and color area under each
+
+    line,caps,_ = ax[1].errorbar(centers, nvs(data_mc_ratio), xerr = 0.5*widths, yerr=(down_errors, up_errors),
+                     fmt='ko',
+                     markersize=3,
+                     ecolor = 'black')
+    _,_,_ = ax[1].errorbar(bins[-2]+0.05,n_off[-1]/n_cont[-1], xerr=0, yerr=[[down_errors[-1]], [up_errors[-1]]], fmt='ko', markersize=3, ecolor='k')
+
+    ax[1].bar(centers,  n_off/n_cont-1, width=widths, color='gray',alpha=0.5, bottom=1)
+    ax[1].set_xlim(bins[0]*0.998,bins[-2]*1.002)
+    ax[1].set_ylim(0.7,1.3)
+    ax[0].set_ylim(-5,1.1*np.max([n_cont_up, n_off]))
+
+    ax[1].set_yticks([0.75,1,1.25])
+    if not text is None:
+        ax[0].text(textplace,1.02, text, transform=ax[0].transAxes)
+    if not lumi is None:
+        lumi = rf"$\int \mathcal{{L}}dt =$ {lumi}"
+        ax[0].legend(title=lumi)
+    else:
+        ax[0].legend()
+
+    if not density:
+        discrepancy = np.sum(np.nan_to_num(n_off/n_cont * (n_off+n_cont)/np.sum(n_off+n_cont), neginf=0, posinf=0))
+        ax[0].text(0.05,1.02, f"discrepancy: {discrepancy:.3f}", transform=ax[0].transAxes)
+    #discrepancy = scipy.spatial.distance.jensenshannon(n_off, n_cont)
+    #discrepancy = np.average(n_off/n_cont)
+
+    ax[1].set_xlabel(var_to_string(var))
+    ax[0].set_ylabel("Candidates per bin")
+    ax[1].set_ylabel(r"$\frac{\mathrm{DATA}}{MC}$")
+
+def make_datamc_ratio_plot_old(numerator, denominator, var,
                            denominator_weight_up = None,
                            denominator_weight_down = None,
                            denominator_weight = None,
                            bins=None,
                            text=None, textplace=0.7,
-                           axes=None,
+                           axes=None, density=False,
                            data_label="data"):
 
     if bins is None:
@@ -82,29 +200,35 @@ def make_datamc_ratio_plot(numerator, denominator, var,
     #### Calculations
     n_cont_up, _ = np.histogram(denominator[var], 
                             bins = bins,
-                                weights=denominator_weight_up)
+                                weights=denominator_weight_up, density=density)
     n_cont_down, _ = np.histogram(denominator[var], 
                                   bins = bins, 
-                                  weights=denominator_weight_down)
+                                  weights=denominator_weight_down, density=density)
     n_cont, _ = np.histogram(denominator[var], 
                              bins = bins, 
-                             weights=denominator_weight)
+                             weights=denominator_weight, density=density)
 
     stat_uncertainty_sq, _ = np.histogram(denominator[var], 
                              bins = bins, 
                              weights=denominator_weight**2)
+    if not density:
+        stat_uncertainty = np.sqrt(stat_uncertainty_sq)
 
-    stat_uncertainty = np.sqrt(stat_uncertainty_sq)
+        uncertainty_sources = np.array([
+            stat_uncertainty,
+            0.5*(n_cont_up-n_cont_down),
+        ])
 
-    uncertainty_sources = np.array([
-        stat_uncertainty,
-        0.5*(n_cont_up-n_cont_down),
-    ])
+        uncertainty = np.sqrt((np.sum(uncertainty_sources**2, axis=0)))
+    else:
+        uncertainty = np.zeros(len(bins)-1)
 
-    uncertainty = np.sqrt((np.sum(uncertainty_sources**2, axis=0)))
-
-    n_off, _, _, _ = bp.errorhist(numerator[var], 
-                                  bins = bins, ax=ax[0], label=data_label)
+    if not density:
+        n_off, _, _, _ = bp.errorhist(numerator[var], 
+                                      bins = bins, ax=ax[0], label=data_label, density=density)
+    else:
+        n_off, _, _, _ = bp.hist(numerator[var], lw=2,
+                                 bins = bins, ax=ax[0], label=data_label, density=density)
     ########
 
     ax[0].bar(centers,
@@ -113,11 +237,14 @@ def make_datamc_ratio_plot(numerator, denominator, var,
               width=widths, color='gray',
               alpha=0.5, label="Uncrtnt. band")
 
-    for n, (binmin, binmax) in enumerate(zip(bins[:-1], bins[1:])):
-        ax[0].axhline(y = n_cont[n], xmin = binmin/(bins[-2]*1.002-bins[0]*0.998)-1.07, xmax=binmax/(bins[-2]*1.002-bins[0]*0.998)-1.07, color='black', ls='dashed')
+    ax[0].hlines(y = n_cont, xmin = bins[:-1], xmax=bins[1:], color='black', ls='dashed', label="MC")
 
-    up_errors = (n_off+np.sqrt(n_off))/(n_cont-uncertainty) - n_off/n_cont
-    down_errors = n_off/n_cont -(n_off-np.sqrt(n_off))/(n_cont+uncertainty)
+    if not density:
+        up_errors = (n_off+np.sqrt(n_off))/(n_cont-uncertainty) - n_off/n_cont
+        down_errors = n_off/n_cont -(n_off-np.sqrt(n_off))/(n_cont+uncertainty)
+    else:
+        up_errors = 0
+        down_errors = 0
 
 
     #Draw pull distribution and color area under each
@@ -126,6 +253,7 @@ def make_datamc_ratio_plot(numerator, denominator, var,
                      fmt='ko',
                      markersize=3,
                      ecolor = 'black')
+    _,_,_ = ax[1].errorbar(bins[-2]+0.05,n_off[-1]/n_cont[-1], xerr=0, yerr=[[down_errors[-1]], [up_errors[-1]]], fmt='ko', markersize=3, ecolor='k')
 
     ax[1].bar(centers,  n_off/n_cont-1, width=widths, color='gray',alpha=0.5, bottom=1)
     ax[1].set_xlim(bins[0]*0.998,bins[-2]*1.002)
@@ -141,7 +269,7 @@ def make_datamc_ratio_plot(numerator, denominator, var,
     #discrepancy = scipy.spatial.distance.jensenshannon(n_off, n_cont)
     #discrepancy = np.average(n_off/n_cont)
 
-    ax[0].text(0.15,1.02, f"discrepancy: {discrepancy:.3f}", transform=ax[0].transAxes)
+    ax[0].text(0.05,1.02, f"discrepancy: {discrepancy:.3f}", transform=ax[0].transAxes)
     ax[1].set_xlabel(var_to_string(var))
     ax[0].set_ylabel("Candidates per bin")
     ax[1].set_ylabel(r"$\frac{\mathrm{DATA}}{MC}$")

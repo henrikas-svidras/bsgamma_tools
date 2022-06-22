@@ -48,11 +48,16 @@ varsafe = {
     "gamma_ECMS": r"$E_{\gamma}^{CMS}$, GeV",
     "gamma_EB": r"$E_{\gamma}^B$, GeV",
     "gamma_E": r"$E_{\gamma}$, GeV",
+    "gamma_clusterZernikeMVA": r"clusterZernikeMVA",
 
     ### For var_to_string
 
     "Bsig_pi0Prob":r"$\mathcal{P}_{\pi^0\rightarrow\gamma\gamma}$",
     "Bsig_etaProb":r"$\mathcal{P}_{\eta\rightarrow\gamma\gamma}$",
+
+    ### For var_to_string
+
+    "Btag_Mbc":r"tag-side $M_{\mathrm{bc}}$, GeV/$c^2$",
 
 
     

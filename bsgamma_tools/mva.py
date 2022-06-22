@@ -122,7 +122,7 @@ def show_ROC (model, train_x, test_x, train_y, test_y, legend_title = 'FastBDT',
         # show the plot
         plt.show()
 
-def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas = None, coeff = 1):
+def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas = None, coeff = 1, label=[None,None]):
     """
     Inputs:
         model   : trained FastBDT Classifier
@@ -152,12 +152,16 @@ def show_separation(model, train_x, test_x, train_y, test_y, log = False, saveas
       negative_probs = [coeff*ent for prob in probs[test_y==0]]
       positive_probs_train = [coeff*ent for prob in probs_train[train_y==1]]
       negative_probs_train = [coeff*ent for prob in probs_train[train_y==0]]
+    
+    if label[0] is None:
+        label[0] = "Continuum"
+    if label[1] is None:
+        label[1] = "BB"
+    _,bins1,_ = b2plot.hist(negative_probs,fill=True, bins=30, label=label[0],ax=axis, fillalpha=0.7, density=True)
+    _,bins2,_ = b2plot.hist(positive_probs,fill=True, bins=30, label=label[1], ax=axis, fillalpha=0.7, density=True)
 
-    _,bins1,_ = b2plot.hist(negative_probs,fill=True, bins=30, label='Continuum',ax=axis, fillalpha=0.7, density=True)
-    _,bins2,_ = b2plot.hist(positive_probs,fill=True, bins=30, label='BB', ax=axis, fillalpha=0.7, density=True)
-
-    b2plot.errorhist(negative_probs_train, bins = bins1,ax = axis,label='Continuum Train', fmt='v',color=sns.xkcd_rgb["denim blue"], density=True)
-    b2plot.errorhist(positive_probs_train, bins = bins2,ax = axis,label='BB Train', fmt='^',color=sns.xkcd_rgb["dark red"], density=True)
+    b2plot.errorhist(negative_probs_train, bins = bins1,ax = axis,label=label[0]+' train', fmt='v',color=sns.xkcd_rgb["denim blue"], density=True)
+    b2plot.errorhist(positive_probs_train, bins = bins2,ax = axis,label=label[1]+' train', fmt='^',color=sns.xkcd_rgb["dark red"], density=True)
 
     axis.set_xlabel('Classifier Output')
     axis.set_ylabel(f'Events/{bins1[1]-bins1[0]:.2f}')
