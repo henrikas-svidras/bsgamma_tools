@@ -26,10 +26,17 @@ def cut_to_string(cut):
     for swap in varsafe:
         cut = cut.replace(swap, varsafe[swap])
     
-    cut = cut.replace(" < ", "<"). replace("<", " < ")
+    cut = cut.replace(" < ", "<").replace("<", " < ").replace("<=", " $\leq$ ").replace(">=", " $\geq$ ")
 
     return cut
 
+def create_bins(input_list, var):
+    beanlist = []
+    for a, b in zip(input_list[:-1], input_list[1:]):
+        beanlist.append(f'{b}>{var}>={a}')
+    bin_list = input_list
+    bin_centers = 0.5*(bin_list[1:]+bin_list[:-1])
+    return beanlist
 
 safe = {
     "Inclusive Xsu modes": [30353,-30353,
@@ -46,9 +53,10 @@ varsafe = {
     ### For var_to_string
 
     "gamma_ECMS": r"$E_{\gamma}^{CMS}$, GeV",
-    "gamma_EB": r"$E_{\gamma}^B$, GeV",
+    "gamma_EB": r"$E_{\gamma}^B$ reconstructed, GeV",
     "gamma_E": r"$E_{\gamma}$, GeV",
     "gamma_clusterZernikeMVA": r"clusterZernikeMVA",
+    "CS_unflat": r"Cont. Sup. BDT",
 
     ### For var_to_string
 

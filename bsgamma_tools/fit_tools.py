@@ -710,12 +710,12 @@ class MbcFit:
                            transform=up_ax.transAxes)
             up_ax.text(0.6,0.91, '$'+cut.replace(f'{self.var}','E_{\gamma}^B').replace('>=','\geq').replace('<=','\leq')+'$',
                        transform=up_ax.transAxes)
-            up_ax.set_ylabel(f"Events/({bin_width*1000:.0f} MeV)")
+            up_ax.set_ylabel(f"Events/bin")
             down_ax.set_ylabel(f"Pull")
         print('plot saved')
 
     def single_bin_plotter(self, models, datasets, bin_number, normalise=True, composite=False, plot_data=True, text_shift=0, write_yields=False):
-        fig, axs = plt.subplots(2,1,figsize=(8,5), gridspec_kw={'height_ratios': [1.618**2,1], 'hspace':0.05})
+        fig, axs = plt.subplots(2,1,figsize=(8,5), gridspec_kw={'height_ratios': [1.618**2,1], 'hspace':0.06})
         ax = axs.flatten()
         if composite:
             plotter = plot_comp_model
@@ -790,8 +790,9 @@ class MbcFit:
                        transform=up_ax.transAxes)
             up_ax.text(0.6,0.91, '$'+self.bin_strings[n].replace(f'{self.var}','E_{\gamma}^B').replace('>=','\geq').replace('<=','\leq')+'$',
                        transform=up_ax.transAxes)
-        up_ax.set_ylabel(f"Events/({bin_widhts[0]*1000:.1f} MeV)")
-        down_ax.set_ylabel(f"Pull")
+        up_ax.set_ylabel(f"Events/({2*bin_widhts[0]*1000:.1f} MeV/c$^2$)", fontsize=20)
+        fig.align_ylabels((up_ax, down_ax))
+        down_ax.set_ylabel(f"Pull", fontsize=20)
         print('plot drawn')
 
     def _old_calculate_chebyshev_shape_systematics(self, dataset=None, scale=None):

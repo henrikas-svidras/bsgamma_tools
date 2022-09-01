@@ -38,3 +38,7 @@ class FeatherCache:
     def __init__(self, database_file):
         with open(database_file, "r") as stream:
             self.path_dict = yaml.safe_load(stream)
+
+
+def read_parquet_dictionary(dic, *args, **kwargs):
+    return {k:pd.read_parquet(*args, **kwargs) for k, p in dic.items()}
