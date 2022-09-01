@@ -41,4 +41,4 @@ class FeatherCache:
 
 
 def read_parquet_dictionary(dic, *args, **kwargs):
-    return {k:pd.read_parquet(*args, **kwargs) for k, p in dic.items()}
+    return {k:pd.read_parquet(p, *args, **kwargs) for k, p in dic.items()}
