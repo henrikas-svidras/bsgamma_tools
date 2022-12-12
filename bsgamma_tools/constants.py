@@ -55,13 +55,13 @@ varsafe = {
     "gamma_ECMS": r"$E_{\gamma}^{CMS}$, GeV",
     "gamma_EB": r"$E_{\gamma}^B$ reconstructed, GeV",
     "gamma_E": r"$E_{\gamma}$, GeV",
-    "gamma_clusterZernikeMVA": r"clusterZernikeMVA",
+    "gamma_clusterZernikeMVA": r"\mathtt{zernikeMVA}",
     "CS_unflat": r"Cont. Sup. BDT",
 
     ### For var_to_string
 
-    "Bsig_pi0Prob":r"$\mathcal{P}_{\pi^0\rightarrow\gamma\gamma}$",
-    "Bsig_etaProb":r"$\mathcal{P}_{\eta\rightarrow\gamma\gamma}$",
+    "Bsig_pi0Prob":r"$\mathcal{P}({\pi^0\rightarrow\gamma\gamma})$",
+    "Bsig_etaProb":r"$\mathcal{P}({\eta\rightarrow\gamma\gamma})$",
 
     ### For var_to_string
 
