@@ -502,7 +502,7 @@ class VariableHybridModel:
 
 
 
-    def draw_unweighted_evtgen(self, reweighted=False):
+    def draw_unweighted_evtgen(self, reweighted=False, add_info=True, label_transformer=None, signal_model_name="Inclusive signal model", density=False):
 
         bins = np.linspace(1.4,2.8,50)
         bin_width = bins[1]-bins[0]
@@ -519,19 +519,24 @@ class VariableHybridModel:
             signal = self.charged_inclusive_default
 
         draw_list = [df.g_EB for df in self.charged_resonances.values()] + [signal.g_EB]
-        name_list = self.charged_names + ['Xs gamma']
+        if label_transformer:
+            name_list = label_transformer(self.charged_names + ['inclusive Xs'])
+        else:
+            name_list = self.charged_names + ['inclusive Xs']
 
 
         weights = [df['br_weight'].values for df in self.charged_resonances.values()] + \
                   [signal.br_weight*signal.rel_weight]
 
-        bp.stacked(draw_list, bins=bins, ax=ax, label=name_list, weights=weights)
+        bp.stacked(draw_list, bins=bins, ax=ax, label=name_list, weights=weights, density=density)
 
 
         bp.hist(signal.g_EB, 
                 bins=bins, ax=ax, 
-                label='Inclusive signal model', scale=3.49e-4, 
+                label=signal_model_name, scale=3.49e-4, 
+                density=density,
                 ls='--', color='orange', lw=2)
+
 
         # B zero mode
 
@@ -543,31 +548,37 @@ class VariableHybridModel:
             signal = self.mixed_inclusive_default
 
         draw_list = [df.g_EB for df in self.mixed_resonances.values()] + [signal.g_EB]
-        name_list = self.mixed_names + ['Xs gamma']
+        if label_transformer:
+            name_list = label_transformer(self.mixed_names + ['inclusive Xs'])
+        else:
+            name_list = self.mixed_names + ['inclusive Xs']
 
 
         weights = [df['br_weight'].values for df in self.mixed_resonances.values()] + \
                   [signal.br_weight*signal.rel_weight]
 
-        bp.stacked(draw_list, bins=bins, ax=ax, label=name_list, weights=weights)
+        bp.stacked(draw_list, bins=bins, 
+                density=density,
+                ax=ax, label=name_list, weights=weights)
 
 
         bp.hist(signal.g_EB, 
                 bins=bins, ax=ax, 
-                label='Inclusive signal model', scale=3.49e-4, 
+                density=density,
+                label=signal_model_name, scale=3.49e-4, 
                 ls='--', color='orange', lw=2)
 
         for ax in axs:
 
-            ax.legend(loc='upper left')
+            ax.legend(loc='upper left', title="Xs mode")
 
             ax.set_xlabel("$E^{\mathrm{B}}_{\gamma}$, GeV")
             ax.set_ylabel(f" 500000*BF / {bin_width:.2f} GeV")
             ax.legend(loc='upper left')
-            if not reweighted:
+            if not reweighted and add_info:
                 ax.text(0.41,0.95, "Approximately what is used in Generic MC", fontsize=12, transform=ax.transAxes)
-        axs[0].text(0.41,0.85, "$B^+$", fontsize=12, transform=axs[0].transAxes)
-        axs[1].text(0.41,0.85, "$B^0$", fontsize=12, transform=axs[1].transAxes)
+        axs[0].text(0.35,0.95, "Generic $B^+$ simulation", transform=axs[0].transAxes)
+        axs[1].text(0.35,0.95, "Generic $B^0$ simulation", transform=axs[1].transAxes)
 
     def draw_reweighted(self):
 
@@ -634,6 +645,7 @@ class VariableHybridModel:
                         var="g_EB", 
                         save=None,
                         include_non_hweighted=True,
+                        density=False,
                         ):
 
         fig, axs = plt.subplots(1,3, figsize=(27,6))
@@ -661,6 +673,7 @@ class VariableHybridModel:
                                weights=[hybrid_weights_inclusive, 
                                         hybrid_weights_resonances],
                                label=['inclusive', 'resonant'],
+                               density=density,
                                ax=ax)
 
         charged_total = pd.concat([self.charged_inclusive, self.charged_resonance_all])
@@ -669,6 +682,7 @@ class VariableHybridModel:
                             weights=charged_total['hweight']*charged_total['br_weight'],
                             label='hybrid model',
                             color='k',
+                            density=density,
                             lw=2,
                             ax=ax)
         if include_non_hweighted:
@@ -677,6 +691,7 @@ class VariableHybridModel:
                                 weights=charged_total['rel_weight']*charged_total['br_weight'],
                                 label='non-reweighted',
                                 ls='--', color='blue', lw=2,
+                               density=density,
                                 ax=ax)
 
 
@@ -684,6 +699,7 @@ class VariableHybridModel:
                            bins=drawbins, color='red', lw=2,
                            weights=self.charged_inclusive["incl_weight"]*self.charged_inclusive['br_weight'],
                            label='Kagan Neubert',
+                               density=density,
                            ax=ax)
         #### B0
         ax = axs[1]
@@ -701,6 +717,7 @@ class VariableHybridModel:
                                weights=[hybrid_weights_inclusive, 
                                         hybrid_weights_resonances],
                                label=['inclusive', 'resonant'],
+                               density=density,
                                ax=ax)
 
         mixed_total = pd.concat([self.mixed_inclusive, self.mixed_resonance_all])
@@ -710,6 +727,7 @@ class VariableHybridModel:
                             label='hybrid model',
                             color='k',
                             lw=2,
+                               density=density,
                             ax=ax)
         if include_non_hweighted:
             n_n, _, _ = bp.hist(mixed_total[var],
@@ -717,6 +735,7 @@ class VariableHybridModel:
                                 weights=mixed_total['rel_weight']*mixed_total['br_weight'],
                                 label='non-reweighted',
                                 ls='--', color='blue', lw=2,
+                               density=density,
                                 ax=ax)
 
 
@@ -724,6 +743,7 @@ class VariableHybridModel:
                            bins=drawbins, color='red', lw=2,
                            weights=self.mixed_inclusive["incl_weight"]*self.mixed_inclusive['br_weight'],
                            label='Kagan Neubert',
+                               density=density,
                            ax=ax)
 
         #print(f"Difference between areas is {100*abs((np.sum(n1)-np.sum(n2))/np.sum(n2)):.2f}%")
@@ -740,6 +760,7 @@ class VariableHybridModel:
                                weights=[inclusive_total['hweight']*inclusive_total['br_weight'], 
                                         resonance_total['hweight']*resonance_total['br_weight']],
                                label=['inclusive', 'resonant'],
+                               density=density,
                                ax=ax)
 
         total_total = pd.concat([charged_total, mixed_total])
@@ -749,6 +770,7 @@ class VariableHybridModel:
                             label='hybrid model',
                             color='k',
                             lw=2,
+                               density=density,
                             ax=ax)
         if include_non_hweighted:
             n_n, _, _ = bp.hist(total_total[var],
@@ -756,6 +778,7 @@ class VariableHybridModel:
                                 weights=total_total['rel_weight']*total_total['br_weight'],
                                 label='non-reweighted',
                                 ls='--', color='blue', lw=2,
+                               density=density,
                                 ax=ax)
 
 
@@ -763,6 +786,7 @@ class VariableHybridModel:
                            bins=drawbins, color='red', lw=2,
                            weights=inclusive_total["incl_weight"]*inclusive_total['br_weight'],
                            label='Kagan Neubert',
+                               density=density,
                            ax=ax)
 
         for ax in axs:
