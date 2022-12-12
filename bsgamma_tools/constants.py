@@ -55,7 +55,7 @@ varsafe = {
     "gamma_ECMS": r"$E_{\gamma}^{CMS}$, GeV",
     "gamma_EB": r"$E_{\gamma}^B$ reconstructed, GeV",
     "gamma_E": r"$E_{\gamma}$, GeV",
-    "gamma_clusterZernikeMVA": r"\mathtt{zernikeMVA}",
+    "gamma_clusterZernikeMVA": r"$\mathtt{zernikeMVA}$",
     "CS_unflat": r"Cont. Sup. BDT",
 
     ### For var_to_string
