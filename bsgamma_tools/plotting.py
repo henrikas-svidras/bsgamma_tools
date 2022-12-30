@@ -65,7 +65,8 @@ def make_datamc_ratio_plot(numerator, denominator, var,
                            bins=None,
                            text=None, textplace=0.7,
                            axes=None, density=False, show_discrepancy=True,
-                           data_label="data", uncertainty_label="Uncertainty band"):
+                           data_label="data", uncertainty_label="Uncertainty band",
+                           mc_label="MC", legend_loc="best"):
 
     if bins is None:
         bins = np.array([1.4,1.6,1.8,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,5.0])
@@ -123,7 +124,7 @@ def make_datamc_ratio_plot(numerator, denominator, var,
               width=widths, color='gray',
               alpha=0.5, label=uncertainty_label)
 
-    ax[0].hlines(y = n_cont, xmin = bins[:-1], xmax=bins[1:], color='black', ls='dashed', label="MC")
+    ax[0].hlines(y = n_cont, xmin = bins[:-1], xmax=bins[1:], color='black', ls='dashed', label=mc_label)
 
     data_distribution = uarray(n_off, np.sqrt(n_off))
     mc_distribution = uarray(n_cont, uncertainty)
@@ -158,9 +159,9 @@ def make_datamc_ratio_plot(numerator, denominator, var,
         ax[0].text(textplace,1.02, text, transform=ax[0].transAxes)
     if not lumi is None:
         lumi = rf"$\int \mathcal{{L}}dt =$ {lumi}"
-        ax[0].legend(title=lumi)
+        ax[0].legend(title=lumi, loc=legend_loc)
     else:
-        ax[0].legend()
+        ax[0].legend(loc="legend_loc")
 
     if not density and show_discrepancy:
         discrepancy = np.sum(np.nan_to_num(n_off/n_cont * (n_off+n_cont)/np.sum(n_off+n_cont), neginf=0, posinf=0))

@@ -186,6 +186,8 @@ class MbcFit:
 
     ignored_chebyshev = False
 
+    fitted = False
+
     def __init__(self, df_peak, df_combinatorial, df_continuum, obs, fit_var = "Btag_Mbc",
                  cheb_bin_groups = None, argus_bin_groups = None, weights_col = None, bin_list = None, low_c = 0,
                  lower=None, lowsig=None, c_floaty=False, cheb_floaty=False, m_floaty=True, m0_init=None, minimizer=None, ignore_cheb=False):
@@ -649,7 +651,7 @@ class MbcFit:
                                      datasets[n], plot_data=plot_data,
                                      as_bp=True, normalise=normalise,
                                      axs=(up_ax, down_ax), spit_vals=True)
-            if self.last_result is not None:
+            if self.fitted and self.last_result is not None:
                 signal_estimate = self.last_result.params[self.collector['yield_signal'][n]]["value"]
 
                 signal_count = datasets[n].nevents.numpy()
@@ -730,12 +732,12 @@ class MbcFit:
                    as_bp=True, normalise=normalise,
                    axs=(up_ax, down_ax), spit_vals=True)
 
-        signal_estimate = self.last_result.params[self.collector['yield_signal'][n]]["value"]
-
-        signal_count = datasets[n].nevents.numpy()
-        if not self.ignored_chebyshev:
-            cheb_estimate = self.last_result.params[self.collector['yield_cheb'][n]]["value"]
-        argus_estimate = self.last_result.params[self.collector['yield_argus'][n]]["value"]
+        if write_yields:
+            signal_estimate = self.last_result.params[self.collector['yield_signal'][n]]["value"]
+            signal_count = datasets[n].nevents.numpy()
+            if not self.ignored_chebyshev:
+                cheb_estimate = self.last_result.params[self.collector['yield_cheb'][n]]["value"]
+            argus_estimate = self.last_result.params[self.collector['yield_argus'][n]]["value"]
         if write_yields and "minuit_minos" in self.last_result.params[self.collector['yield_signal'][n]]:
             signal_up_error = self.last_result.params[self.collector['yield_signal'][n]]["minuit_minos"]["upper"]
             signal_low_error = self.last_result.params[self.collector['yield_signal'][n]]["minuit_minos"]["lower"]
@@ -1063,6 +1065,8 @@ class SWeightFit:
         else:
             self.crys_result = new_result
 
+        self.last_result = self.crys_result
+
         self.mu.floating = False
         self.sigma.floating = False
         self.alfa.floating = False
@@ -1092,6 +1096,8 @@ class SWeightFit:
             self.cheb_result = cheb_result
         else:
             self.cheb_result = new_result
+        
+        self.last_result = self.cheb_result
 
         self.c1.floating = False
         self.c2.floating = False
@@ -1123,6 +1129,8 @@ class SWeightFit:
             self.argus_result = argus_result
         else:
             self.argus_result = new_result
+
+        self.last_result = self.argus_result
 
         self.m0.floating = False
         self.ppar.floating = False

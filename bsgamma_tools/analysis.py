@@ -384,7 +384,7 @@ class EGammaSpectrum:
         if self.binned or self.custom:
             self.plot_binned_spectrum(target)
 
-    def plot_binned_spectrum(self, target=None, weights=None):
+    def plot_binned_spectrum(self, target=None, weights=None, color='r'):
 
         fig, ax = plt.subplots(1, 1)
 
@@ -393,14 +393,14 @@ class EGammaSpectrum:
         ax.errorbar(self.bin_centers, self.n_gamma, yerr=np.array(np.abs(self.fit_uncertainty)), fmt='k.')
 
         if not target is None:
-            ax.hist(target, bins=self.bins, histtype="step", label="target histogram", color='r', lw=1.5, weights=weights)
+            ax.hist(target, bins=self.bins, histtype="step", color=color, lw=1.5, weights=weights)
         ax.set_xlabel("$E^B_{\gamma}$, GeV")
         ax.set_ylabel("Crystal Ball yield")
         ax.set_xlim(1.4, 3.5)
         ax.set_ylim(-5, )
         ax.legend(fontsize=15)
 
-    def plot_sweighted_spectrum(self, target=None):
+    def plot_sweighted_spectrum(self, target=None, color = 'r'):
         fig, axs = plt.subplots(1, 2, figsize=(16,6))
 
         axs[0].plot(self.original_mbc[self.sorter], self.weights_crys[self.sorter], label = '$w_\\mathrm{CB}$')
@@ -417,7 +417,7 @@ class EGammaSpectrum:
 
         axs[1].bar(self.bin_centers, self.n_gamma, self.bin_width*2, align='center', alpha=.5, label='weighted histogram')
         if not target is None:
-            axs[1].hist(target, bins=self.bins, histtype="step", label="target histogram", color='r', lw=1.5)
+            axs[1].hist(target, bins=self.bins, histtype="step", color=color, lw=1.5)
         axs[1].set_xlabel("$E^B_{\gamma}$, GeV")
         axs[1].set_xlim(1.4, 3.5)
         axs[1].set_ylim(-5, )
